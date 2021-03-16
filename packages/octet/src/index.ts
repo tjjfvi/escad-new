@@ -27,16 +27,15 @@ export async function* serialize(
   {
     chunkSize = 1 << 14, // 16kb
     chunkMinSize = chunkSize / 2,
-  }: SerializeOptions,
+  }: SerializeOptions = {},
 ){
   const memo = new Map<unknown, number>()
   let idN = 1
   let currentChunk: Buffer | undefined
   let currentInd = 0
   const stack = [rootValue]
-  while(true) {
+  while(stack.length) {
     const value = stack.pop()
-    if(!value) return
     const memoId = memo.get(value)
     if(memoId !== undefined) {
       yield* writeId(memoId)
@@ -53,15 +52,17 @@ export async function* serialize(
       }
       if(value instanceof Buffer) {
         yield* writeKind(Kind.buffer)
+        yield* write(4, buf => buf.writeUInt32LE(value.length))
         yield* writeBuffer(value)
       }
       if(value === null) {
         yield* writeKind(Kind.null)
         continue
       }
+      yield* writeKind(Kind.object)
       stack.push(endMarker)
       for(const key in value)
-        stack.push(key, value)
+        stack.push(value[key as never], key)
       continue
     }
     if(typeof value === "string") {
@@ -89,6 +90,11 @@ export async function* serialize(
     }
     throw new Error(`Cannot serialize value of type "${typeof value}"`)
   }
+
+  if(currentChunk)
+    yield currentChunk.slice(0, currentInd)
+
+  return
 
   function writeKind(kind: Kind){
     return write(1, buf => buf.writeUInt8(kind))
@@ -143,7 +149,7 @@ export interface DeserializeOptions {
 
 export async function deserialize(
   stream: AsyncIterable<Buffer>,
-  {}: DeserializeOptions,
+  {}: DeserializeOptions = {},
 ){
   type Target = [unknown[]] | [Record<string, unknown>, string | undefined]
   const memo = new Map<number, unknown>()
@@ -155,6 +161,7 @@ export async function deserialize(
   do {
     const target = targetStack[targetStack.length - 1]
     const value = await readValue()
+    if(value === endMarker) continue
     if(target.length === 1)
       target[0].push(value)
     else if(target[1] !== undefined) {
@@ -192,14 +199,29 @@ export async function deserialize(
       targetStack.push([value, undefined])
       return value
     }
-    if(kind === Kind.end)
-      return targetStack.pop()![0]
+    if(kind === Kind.end) {
+      targetStack.pop()
+      return endMarker
+    }
+    if(kind === Kind.number)
+      return ieee754.read(await read(8), 0, true, 52, 8)
+    if(kind === Kind.null)
+      return null
+    if(kind === Kind.undefined)
+      return undefined
+    if(kind === Kind.string)
+      return (await read((await read(4)).readUInt32LE())).toString("utf8")
+    if(kind === Kind.true)
+      return true
+    if(kind === Kind.false)
+      return false
+    if(kind === Kind.buffer)
+      return await read((await read(4)).readUInt32LE())
+    throw new Error(`Invalid kind ${kind}`)
   }
 
   async function readKind(): Promise<Kind>{
     const kind = await read(1).then(buf => buf[0])
-    if(!(kind in Kind))
-      throw new Error(`Invalid kind ${kind}`)
     return kind
   }
 
