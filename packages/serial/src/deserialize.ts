@@ -9,10 +9,31 @@ export interface DeserializeOptions {
   hashMap?: WeakMap<object, string>,
 }
 
-export async function deserialize(
-  stream: AsyncIterable<Buffer>,
-  { hashMap }: DeserializeOptions = {},
-){
+export async function deserialize(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
+  const result = await _deserializeSingular(stream, options)
+  return result.value
+}
+
+deserialize.withHash = _deserializeSingular
+
+deserialize.stream = _deserializeStream
+
+_deserializeStream.withHash = (stream: AsyncIterable<Buffer>, options?: DeserializeOptions) =>
+  _deserialize(stream, options)
+
+async function _deserializeStream(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
+  return _deserialize(stream, options)
+}
+
+async function _deserializeSingular(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
+  const iterator = _deserialize(stream, options, true)
+  const result = await iterator.next()
+  if(result.done)
+    throw new Error("Empty stream passed to singular deserialization")
+  return result.value
+}
+
+async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: DeserializeOptions = {}, single = false){
   type Target =
     | [unknown[], Hasher | undefined, number]
     | [Record<string, unknown>, Hasher | undefined, number, string | undefined]
@@ -22,62 +43,65 @@ export async function deserialize(
   const iterator = stream[Symbol.asyncIterator]()
   const readQueue: Buffer[] = []
   let readQueueLength = 0
-  const targetStack: Target[] = [[[], createHash("sha256"), -1]]
-  do {
-    const target = targetStack[targetStack.length - 1]
-    const value = await readValue()
-    if(value === endMarker) {
-      const target = targetStack.pop()!
-      const [value, hasher, id] = target
-      if(hashMap && hasher) {
-        const hash = hasher.digest("hex")
-        hashMap.set(value, hash)
-        idToHash.set(id, hash)
-        targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+  const targetStack: Target[] = []
+  let first = true
+  while(peek(1)) {
+    if(single && !first)
+      throw new Error("Expected EOF")
+    first = false
+    while(true) {
+      const target = targetStack[targetStack.length - 1]
+      const oldTargetStackLength = targetStack.length
+      let value: unknown
+      let hash: string | undefined
+      let id = await readId()
+      if(id) {
+        value = memo.get(id)
+        hash = idToHash.get(id)
       }
-      continue
+      else {
+        id = idN++
+        const hasher = hashMap && createHash("sha256")
+        value = await readValue(id, hasher)
+        if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
+          hash = hasher.digest("hex")
+          idToHash.set(id, hash)
+          if(typeof value === "object" && value)
+            hashMap.set(value, hash)
+        }
+        memo.set(id, value)
+      }
+      if(!target) {
+        yield { value, hash }
+        break
+      }
+      if(hash && value !== endMarker) target[1]?.update(hash, "hex")
+      if(value === endMarker) {
+        const target = targetStack.pop()!
+        const [value, hasher, id] = target
+        if(hashMap && hasher) {
+          const hash = hasher.digest("hex")
+          hashMap.set(value, hash)
+          idToHash.set(id, hash)
+          targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+        }
+        continue
+      }
+      if(target.length === 3)
+        target[0].push(value)
+      else if(target[3] !== undefined) {
+        target[0][target[3]] = value
+        target[3] = undefined
+      }
+      else {
+        if(typeof value !== "string")
+          throw new Error("Invalid key for object")
+        target[3] = value
+      }
     }
-    if(target.length === 3)
-      target[0].push(value)
-    else if(target[3] !== undefined) {
-      target[0][target[3]] = value
-      target[3] = undefined
-    }
-    else {
-      if(typeof value !== "string")
-        throw new Error("Invalid key for object")
-      target[3] = value
-    }
-  } while(targetStack.length > 1)
-
-  return (targetStack[0][0] as unknown[])[0]
-
-  async function readValue(): Promise<unknown>{
-    let id = await readId()
-    if(id) {
-      const value =  memo.get(id)
-      if(value !== endMarker)
-        targetStack[targetStack.length - 1]?.[1]?.update(idToHash.get(id)!, "hex")
-      return value
-    }
-    id = idN++
-    const hasher = hashMap && createHash("sha256")
-    let oldTargetStackLength = targetStack.length
-    const value = await _readValue(id, hasher)
-    if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
-      const hash = hasher.digest("hex")
-      idToHash.set(id, hash)
-      if(typeof value === "object" && value)
-        hashMap.set(value, hash)
-      if(value !== endMarker)
-        targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
-    }
-
-    memo.set(id, value)
-    return value
   }
 
-  async function _readValue(id: number, hasher?: Hasher): Promise<unknown>{
+  async function readValue(id: number, hasher?: Hasher): Promise<unknown>{
     const kind = await readKind(hasher)
     if(kind === Kind.array) {
       const value: unknown[] = []
@@ -118,13 +142,20 @@ export async function deserialize(
     return await read(4).then(buf => buf.readUInt32LE())
   }
 
-  async function read(length: number, hasher?: Hasher){
+  async function peek(length: number){
     while(length > readQueueLength) {
       const result = await iterator.next()
-      if(result.done) throw new Error("Unexpected EOF")
-      readQueue.push(result.value)
+      if(result.done) return false
+      if(result.value.length)
+        readQueue.push(result.value)
       readQueueLength += result.value.length
     }
+    return true
+  }
+
+  async function read(length: number, hasher?: Hasher){
+    if(!(await peek(length)))
+      throw new Error("Unexpected EOF")
 
     readQueueLength -= length
     if(length === readQueue[0].length) {

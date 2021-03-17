@@ -11,23 +11,39 @@ export interface SerializeOptions {
   hashMap?: WeakMap<object, string>,
 }
 
-export async function* serialize(
+export function serialize(rootValue: unknown, options?: SerializeOptions){
+  return _serialize(rootValue, options)
+}
+
+serialize.hash = (value: unknown, hashMap: WeakMap<object, string>) => {
+  const iterator = serialize(value, { hashMap })
+  while(true) {
+    const result = iterator.next()
+    if(result.done)
+      return result.value!
+  }
+}
+
+serialize.stream = async function* (stream: AsyncIterable<unknown>, options?: SerializeOptions){
+  for await (const value of stream)
+    yield* _serialize(value, options)
+}
+
+export function* _serialize(
   rootValue: unknown,
   {
     chunkSize = 1 << 14, // 16kb
     chunkMinSize = chunkSize / 2,
     hashMap,
   }: SerializeOptions = {},
+  state = new SerializeState(),
 ){
-  const valueMemo = new Map<unknown, number>()
-  const hashMemo = new Map<string, number>()
-  const idToHash = new Map<number, string>()
-  let idN = 1
   let currentChunk: Buffer | undefined
   let currentInd = 0
   let totalPosition = 0
-  const hasherStack: [value: object, hasher: Hasher, id: number, start: number][] = []
+  let rootHash: string | undefined
   const stack = [rootValue]
+  const hasherStack: [value: object, hasher: Hasher, id: number, start: number][] = []
   while(stack.length) {
     const start = totalPosition
     const value = stack.pop()
@@ -35,41 +51,43 @@ export async function* serialize(
       const [value, hasher, id, start] = hasherStack.pop()!
       const hash = hasher.digest("hex")
       hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
-      const hashMemoId = hashMemo.get(hash)
+      if(!hasherStack.length)
+        rootHash = hash
+      const hashMemoId = state.hashMemo.get(hash)
       hashMap.set(value, hash)
       if(hashMemoId && unwrite(totalPosition - start)) {
-        idN = id
+        state.idN = id
         yield* writeId(hashMemoId)
         continue
       }
       else {
-        hashMemo.set(hash, id)
-        idToHash.set(id, hash)
+        state.hashMemo.set(hash, id)
+        state.idToHash.set(id, hash)
       }
     }
-    const memoId = valueMemo.get(value)
+    const memoId = state.valueMemo.get(value)
     if(memoId !== undefined) {
       yield* writeId(memoId)
       if(hashMap) {
-        const hash = idToHash.get(memoId)
+        const hash = state.idToHash.get(memoId)
         if(hash) hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
       }
       continue
     }
     if(hashMap && typeof value === "object" && value) {
       const hash = hashMap.get(value)
-      const hashMemoId = hashMemo.get(hash!)
+      const hashMemoId = state.hashMemo.get(hash!)
       if(hash && hashMemoId) {
         yield* writeId(hashMemoId)
         hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
         continue
       }
     }
-    const id = idN++
+    const id = state.idN++
     let hasher = hashMap && createHash("sha256")
     let deferHasher = false
     yield* writeId(0)
-    valueMemo.set(value, id)
+    state.valueMemo.set(value, id)
     if(typeof value === "object" || typeof value === "function")
       if(Array.isArray(value)) {
         yield* writeKind(Kind.array, hasher)
@@ -110,7 +128,7 @@ export async function* serialize(
 
     if(hasher && !deferHasher && value !== endMarker) {
       const hash = hasher.digest("hex")
-      idToHash.set(id, hash)
+      state.idToHash.set(id, hash)
       hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
     }
 
@@ -121,7 +139,7 @@ export async function* serialize(
   if(currentChunk)
     yield currentChunk.slice(0, currentInd)
 
-  return
+  return rootHash
 
   function unwrite(length: number){
     if(length > currentInd)
@@ -139,7 +157,7 @@ export async function* serialize(
     return write(4, buf => buf.writeUInt32LE(id))
   }
 
-  async function* writeBuffer(buffer: Buffer, hasher?: Hasher){
+  function* writeBuffer(buffer: Buffer, hasher?: Hasher){
     hasher?.update(buffer)
 
     if(buffer.length > chunkMinSize) {
@@ -153,7 +171,7 @@ export async function* serialize(
     yield* write(buffer.length, buf => buffer.copy(buf))
   }
 
-  async function* write(length: number, cb: (buffer: Buffer) => void, hasher?: Hasher){
+  function* write(length: number, cb: (buffer: Buffer) => void, hasher?: Hasher){
     if(length > chunkSize) {
       if(currentChunk)
         yield currentChunk.slice(0, currentInd)
@@ -182,4 +200,13 @@ export async function* serialize(
     currentInd += length
     totalPosition += length
   }
+}
+
+class SerializeState {
+
+  valueMemo = new Map<unknown, number>()
+  hashMemo = new Map<unknown, number>()
+  idToHash = new Map<number, string>()
+  idN = 1
+
 }
