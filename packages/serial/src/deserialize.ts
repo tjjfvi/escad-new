@@ -45,10 +45,11 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
   let readQueueLength = 0
   const targetStack: Target[] = []
   let first = true
-  while(peek(1)) {
+  while(await peek(1)) {
     if(single && !first)
       throw new Error("Expected EOF")
     first = false
+    let outValue: { value: unknown, hash: string | undefined } | undefined
     while(true) {
       const target = targetStack[targetStack.length - 1]
       const oldTargetStackLength = targetStack.length
@@ -71,13 +72,9 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
         }
         memo.set(id, value)
       }
-      if(!target) {
-        yield { value, hash }
-        break
-      }
       if(hash && value !== endMarker) target[1]?.update(hash, "hex")
       if(value === endMarker) {
-        const target = targetStack.pop()!
+        targetStack.pop()
         const [value, hasher, id] = target
         if(hashMap && hasher) {
           const hash = hasher.digest("hex")
@@ -85,6 +82,12 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
           idToHash.set(id, hash)
           targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
         }
+        if(!targetStack.length)
+          break
+        continue
+      }
+      if(!target) {
+        outValue = { value, hash }
         continue
       }
       if(target.length === 3)
@@ -99,6 +102,7 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
         target[3] = value
       }
     }
+    yield outValue!
   }
 
   async function readValue(id: number, hasher?: Hasher): Promise<unknown>{

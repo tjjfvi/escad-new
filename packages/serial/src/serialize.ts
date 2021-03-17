@@ -29,7 +29,7 @@ serialize.stream = async function* (stream: AsyncIterable<unknown>, options?: Se
     yield* _serialize(value, options)
 }
 
-export function* _serialize(
+function* _serialize(
   rootValue: unknown,
   {
     chunkSize = 1 << 14, // 16kb
@@ -91,7 +91,9 @@ export function* _serialize(
     if(typeof value === "object" || typeof value === "function")
       if(Array.isArray(value)) {
         yield* writeKind(Kind.array, hasher)
-        stack.push(endMarker, ...value)
+        stack.push(endMarker)
+        for(let i = value.length - 1; i >= 0; i--)
+          stack.push(value[i])
         deferHasher = true
       }
       else if(value instanceof Buffer) {
@@ -104,8 +106,9 @@ export function* _serialize(
       else {
         yield* writeKind(Kind.object, hasher)
         stack.push(endMarker)
-        for(const key in value)
-          stack.push(value[key as never], key)
+        const keys = Object.keys(value)
+        for(let i = keys.length - 1; i >= 0; i--)
+          stack.push(value[keys[i] as never], keys[i])
         deferHasher = true
       }
     else if(typeof value === "string") {
