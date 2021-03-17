@@ -38,7 +38,7 @@
       "path": "protocol"
     },
     {
-      "path": "octet"
+      "path": "serial"
     },
   ]
 }
