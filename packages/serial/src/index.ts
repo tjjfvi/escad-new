@@ -1,10 +1,15 @@
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import ieee754 from "ieee754"
+import { createHash, Hash as Hasher } from "crypto"
+
+type Hash = string
 
 export interface SerializeOptions {
   chunkSize?: number,
   chunkMinSize?: number,
+  hashMap?: WeakMap<object, Hash>,
 }
 
 enum Kind {
@@ -27,68 +32,106 @@ export async function* serialize(
   {
     chunkSize = 1 << 14, // 16kb
     chunkMinSize = chunkSize / 2,
+    hashMap,
   }: SerializeOptions = {},
 ){
-  const memo = new Map<unknown, number>()
+  const valueMemo = new Map<unknown, number>()
+  const hashMemo = new Map<Hash, number>()
+  const idToHash = new Map<number, Hash>()
   let idN = 1
   let currentChunk: Buffer | undefined
   let currentInd = 0
+  let totalPosition = 0
+  const hasherStack: [value: object, hasher: Hasher, id: number, start: number][] = []
   const stack = [rootValue]
   while(stack.length) {
+    const start = totalPosition
     const value = stack.pop()
-    const memoId = memo.get(value)
+    if(value === endMarker && hashMap) {
+      const [value, hasher, id, start] = hasherStack.pop()!
+      const hash = hasher.digest("hex")
+      hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
+      const hashMemoId = hashMemo.get(hash)
+      hashMap.set(value, hash)
+      if(hashMemoId && unwrite(totalPosition - start)) {
+        idN = id
+        yield* writeId(hashMemoId)
+        continue
+      }
+      else {
+        hashMemo.set(hash, id)
+        idToHash.set(id, hash)
+      }
+    }
+    const memoId = valueMemo.get(value)
     if(memoId !== undefined) {
       yield* writeId(memoId)
+      if(hashMap) {
+        const hash = idToHash.get(memoId)
+        if(hash) hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
+      }
       continue
+    }
+    if(hashMap && typeof value === "object" && value) {
+      const hash = hashMap.get(value)
+      const hashMemoId = hashMemo.get(hash!)
+      if(hash && hashMemoId) {
+        yield* writeId(hashMemoId)
+        hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
+        continue
+      }
     }
     const id = idN++
+    let hasher = hashMap && createHash("sha256")
+    let deferHasher = false
     yield* writeId(0)
-    memo.set(value, id)
-    if(typeof value === "object" || typeof value === "function") {
+    valueMemo.set(value, id)
+    if(typeof value === "object" || typeof value === "function")
       if(Array.isArray(value)) {
-        yield* writeKind(Kind.array)
+        yield* writeKind(Kind.array, hasher)
         stack.push(endMarker, ...value)
-        continue
+        deferHasher = true
       }
-      if(value instanceof Buffer) {
-        yield* writeKind(Kind.buffer)
-        yield* write(4, buf => buf.writeUInt32LE(value.length))
-        yield* writeBuffer(value)
+      else if(value instanceof Buffer) {
+        yield* writeKind(Kind.buffer, hasher)
+        yield* write(4, buf => buf.writeUInt32LE(value.length), hasher)
+        yield* writeBuffer(value, hasher)
       }
-      if(value === null) {
-        yield* writeKind(Kind.null)
-        continue
+      else if(value === null)
+        yield* writeKind(Kind.null, hasher)
+      else {
+        yield* writeKind(Kind.object, hasher)
+        stack.push(endMarker)
+        for(const key in value)
+          stack.push(value[key as never], key)
+        deferHasher = true
       }
-      yield* writeKind(Kind.object)
-      stack.push(endMarker)
-      for(const key in value)
-        stack.push(value[key as never], key)
-      continue
+    else if(typeof value === "string") {
+      yield* writeKind(Kind.string, hasher)
+      yield* write(4, buf => buf.writeUInt32LE(value.length), hasher)
+      yield* write(value.length, buf => buf.write(value, "utf8"), hasher)
     }
-    if(typeof value === "string") {
-      yield* writeKind(Kind.string)
-      yield* write(4, buf => buf.writeUInt32LE(value.length))
-      yield* write(value.length, buf => buf.write(value, "utf8"))
-      continue
+    else if(typeof value === "number") {
+      yield* writeKind(Kind.number, hasher)
+      yield* write(8, buf => ieee754.write(buf, value, 0, true, 52, 8), hasher)
     }
-    if(typeof value === "number") {
-      yield* writeKind(Kind.string)
-      yield* write(8, buf => ieee754.write(buf, value, 0, true, 52, 8))
-      continue
-    }
-    if(value === undefined) {
-      yield* writeKind(Kind.undefined)
-      continue
-    }
-    if(typeof value === "boolean") {
-      yield* writeKind(value ? Kind.true : Kind.false)
-      continue
-    }
-    if(value === endMarker) {
+    else if(value === undefined)
+      yield* writeKind(Kind.undefined, hasher)
+    else if(typeof value === "boolean")
+      yield* writeKind(value ? Kind.true : Kind.false, hasher)
+    else if(value === endMarker)
       yield* writeKind(Kind.end)
-      continue
+    else
+      throw new Error(`Cannot serialize value of type "${typeof value}"`)
+
+    if(hasher && !deferHasher) {
+      const hash = hasher.digest("hex")
+      idToHash.set(id, hash)
+      hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
     }
-    throw new Error(`Cannot serialize value of type "${typeof value}"`)
+
+    if(hasher && deferHasher)
+      hasherStack.push([value as object, hasher, id, start])
   }
 
   if(currentChunk)
@@ -96,15 +139,25 @@ export async function* serialize(
 
   return
 
-  function writeKind(kind: Kind){
-    return write(1, buf => buf.writeUInt8(kind))
+  function unwrite(length: number){
+    if(length > currentInd)
+      return false
+    currentInd -= length
+    totalPosition -= length
+    return true
+  }
+
+  function writeKind(kind: Kind, hasher?: Hasher){
+    return write(1, buf => buf.writeUInt8(kind), hasher)
   }
 
   function writeId(id: number){
     return write(4, buf => buf.writeUInt32LE(id))
   }
 
-  async function* writeBuffer(buffer: Buffer){
+  async function* writeBuffer(buffer: Buffer, hasher?: Hasher){
+    hasher?.update(buffer)
+
     if(buffer.length > chunkMinSize) {
       if(currentChunk)
         yield currentChunk.slice(0, currentInd)
@@ -116,12 +169,13 @@ export async function* serialize(
     yield* write(buffer.length, buf => buffer.copy(buf))
   }
 
-  async function* write(length: number, cb: (buffer: Buffer) => void){
+  async function* write(length: number, cb: (buffer: Buffer) => void, hasher?: Hasher){
     if(length > chunkSize) {
       if(currentChunk)
         yield currentChunk.slice(0, currentInd)
       const buffer = Buffer.allocUnsafe(length)
       cb(buffer)
+      hasher?.update(buffer)
       yield buffer
       currentChunk = undefined
       return
@@ -137,9 +191,12 @@ export async function* serialize(
       currentInd = 0
     }
 
-    cb(currentChunk.slice(currentInd, currentInd + length))
+    const section = currentChunk.slice(currentInd, currentInd + length)
+    cb(section)
+    hasher?.update(section)
 
     currentInd += length
+    totalPosition += length
   }
 }
 
@@ -161,7 +218,10 @@ export async function deserialize(
   do {
     const target = targetStack[targetStack.length - 1]
     const value = await readValue()
-    if(value === endMarker) continue
+    if(value === endMarker) {
+      targetStack.pop()
+      continue
+    }
     if(target.length === 1)
       target[0].push(value)
     else if(target[1] !== undefined) {
@@ -199,10 +259,8 @@ export async function deserialize(
       targetStack.push([value, undefined])
       return value
     }
-    if(kind === Kind.end) {
-      targetStack.pop()
+    if(kind === Kind.end)
       return endMarker
-    }
     if(kind === Kind.number)
       return ieee754.read(await read(8), 0, true, 52, 8)
     if(kind === Kind.null)
