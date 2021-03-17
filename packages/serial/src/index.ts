@@ -4,6 +4,19 @@
 import ieee754 from "ieee754"
 import { createHash, Hash as Hasher } from "crypto"
 
+// // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// const createHash = (_: string) => {
+//   let data = ""
+//   return ({
+//     update: (buf: any) => {
+//       data += "("
+//       data += buf.toString("hex")
+//       data += ")"
+//     },
+//     digest: () => `<${data}>`,
+//   }) as unknown as Hasher
+// }
+
 type Hash = string
 
 export interface SerializeOptions {
@@ -124,7 +137,7 @@ export async function* serialize(
     else
       throw new Error(`Cannot serialize value of type "${typeof value}"`)
 
-    if(hasher && !deferHasher) {
+    if(hasher && !deferHasher && value !== endMarker) {
       const hash = hasher.digest("hex")
       idToHash.set(id, hash)
       hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
@@ -201,37 +214,47 @@ export async function* serialize(
 }
 
 export interface DeserializeOptions {
-
+  hashMap?: WeakMap<object, Hash>,
 }
 
 export async function deserialize(
   stream: AsyncIterable<Buffer>,
-  {}: DeserializeOptions = {},
+  { hashMap }: DeserializeOptions = {},
 ){
-  type Target = [unknown[]] | [Record<string, unknown>, string | undefined]
+  type Target =
+    | [unknown[], Hasher | undefined, number]
+    | [Record<string, unknown>, Hasher | undefined, number, string | undefined]
   const memo = new Map<number, unknown>()
+  const idToHash = new Map<number, Hash>()
   let idN = 1
   const iterator = stream[Symbol.asyncIterator]()
   const readQueue: Buffer[] = []
   let readQueueLength = 0
-  const targetStack: Target[] = [[[]]]
+  const targetStack: Target[] = [[[], createHash("sha256"), -1]]
   do {
     const target = targetStack[targetStack.length - 1]
     const value = await readValue()
     if(value === endMarker) {
-      targetStack.pop()
+      const target = targetStack.pop()!
+      const [value, hasher, id] = target
+      if(hashMap && hasher) {
+        const hash = hasher.digest("hex")
+        hashMap.set(value, hash)
+        idToHash.set(id, hash)
+        targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+      }
       continue
     }
-    if(target.length === 1)
+    if(target.length === 3)
       target[0].push(value)
-    else if(target[1] !== undefined) {
-      target[0][target[1]] = value
-      target[1] = undefined
+    else if(target[3] !== undefined) {
+      target[0][target[3]] = value
+      target[3] = undefined
     }
     else {
       if(typeof value !== "string")
         throw new Error("Invalid key for object")
-      target[1] = value
+      target[3] = value
     }
   } while(targetStack.length > 1)
 
@@ -239,47 +262,63 @@ export async function deserialize(
 
   async function readValue(): Promise<unknown>{
     let id = await readId()
-    if(id)
-      return memo.get(id)
+    if(id) {
+      const value =  memo.get(id)
+      if(value !== endMarker)
+        targetStack[targetStack.length - 1]?.[1]?.update(idToHash.get(id)!, "hex")
+      return value
+    }
     id = idN++
-    const value = await _readValue()
+    const hasher = hashMap && createHash("sha256")
+    let oldTargetStackLength = targetStack.length
+    const value = await _readValue(id, hasher)
+    if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
+      const hash = hasher.digest("hex")
+      idToHash.set(id, hash)
+      if(typeof value === "object" && value)
+        hashMap.set(value, hash)
+      if(value !== endMarker)
+        targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+    }
+
     memo.set(id, value)
     return value
   }
 
-  async function _readValue(): Promise<unknown>{
-    const kind = await readKind()
+  async function _readValue(id: number, hasher?: Hasher): Promise<unknown>{
+    const kind = await readKind(hasher)
     if(kind === Kind.array) {
       const value: unknown[] = []
-      targetStack.push([value])
+      targetStack.push([value, hasher, id])
       return value
     }
     if(kind === Kind.object) {
       const value = {}
-      targetStack.push([value, undefined])
+      targetStack.push([value, hasher, id, undefined])
       return value
     }
     if(kind === Kind.end)
       return endMarker
     if(kind === Kind.number)
-      return ieee754.read(await read(8), 0, true, 52, 8)
+      return ieee754.read(await read(8, hasher), 0, true, 52, 8)
     if(kind === Kind.null)
       return null
     if(kind === Kind.undefined)
       return undefined
     if(kind === Kind.string)
-      return (await read((await read(4)).readUInt32LE())).toString("utf8")
+      return (await read((await read(4, hasher)).readUInt32LE(), hasher)).toString("utf8")
     if(kind === Kind.true)
       return true
     if(kind === Kind.false)
       return false
     if(kind === Kind.buffer)
-      return await read((await read(4)).readUInt32LE())
+      return await read((await read(4, hasher)).readUInt32LE(), hasher)
     throw new Error(`Invalid kind ${kind}`)
   }
 
-  async function readKind(): Promise<Kind>{
-    const kind = await read(1).then(buf => buf[0])
+  async function readKind(hasher?: Hasher): Promise<Kind>{
+    const buf = await read(1, hasher)
+    const kind = buf[0]
     return kind
   }
 
@@ -287,7 +326,7 @@ export async function deserialize(
     return await read(4).then(buf => buf.readUInt32LE())
   }
 
-  async function read(length: number){
+  async function read(length: number, hasher?: Hasher){
     while(length > readQueueLength) {
       const result = await iterator.next()
       if(result.done) throw new Error("Unexpected EOF")
@@ -296,11 +335,15 @@ export async function deserialize(
     }
 
     readQueueLength -= length
-    if(length === readQueue[0].length)
-      return readQueue.shift()!
+    if(length === readQueue[0].length) {
+      const buffer = readQueue.shift()!
+      hasher?.update(buffer)
+      return buffer
+    }
     if(length < readQueue[0].length) {
       const buffer = readQueue[0].slice(0, length)
       readQueue[0] = readQueue[0].slice(length)
+      hasher?.update(buffer)
       return buffer
     }
     const buffer = Buffer.allocUnsafe(length)
@@ -315,6 +358,7 @@ export async function deserialize(
       readQueue[0] = readQueue[0].slice(writtenLength - length)
       break
     }
+    hasher?.update(buffer)
     return buffer
   }
 }

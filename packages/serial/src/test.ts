@@ -18,6 +18,9 @@ const hashMap = new WeakMap<any, string>()
       .pipe(fs.createWriteStream(__dirname + "/out")),
     "finish",
   )
+  console.log(hashMap.get(value))
   console.log("deserialize")
-  console.log(await deserialize(fs.createReadStream(__dirname + "/out")))
+  const value2 = await deserialize(fs.createReadStream(__dirname + "/out"), { hashMap })
+  console.log(value2)
+  console.log(hashMap.get(value2))
 })()
