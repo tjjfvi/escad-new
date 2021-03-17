@@ -1,8 +1,9 @@
 
-import { serialize, deserialize } from "./index"
 import { Readable } from "stream"
 import fs from "fs"
 import { once } from "events"
+import { deserialize } from "./deserialize"
+import { serialize } from "./serialize"
 
 const value = {
   a: { w: 0, x: 1, y: 2, z: 3 },
