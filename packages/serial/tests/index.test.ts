@@ -25,17 +25,11 @@ objects.push({
           chain: {
             of: {
               properties: {
-                oh: {
-                  look: {
-                    its: {
-                      circular: objects,
-                    },
-                  },
-                },
                 that: {
                   is: {
-                    circular: objects,
-                    inWays: 2,
+                    not: {
+                      circular: NaN,
+                    },
                   },
                 },
               },
@@ -47,23 +41,17 @@ objects.push({
   },
 })
 
-objects.push(objects)
-
-objects.push(Object.fromEntries(objects.map(obj =>
-  [serialize.hash(obj, new Map()), obj],
-)))
-
 const hashMap0 = new Map()
 
-test("hashes", () =>
-  expect(objects.map(x => serialize.hash(x, hashMap0))).toMatchSnapshot(),
-)
+const hashes0 = objects.map(x => serialize.hash(x, new Map()))
+const hashes1 = objects.map(x => serialize.hash(x, hashMap0))
+const hashes2 = objects.map(x => serialize.hash(x, hashMap0))
 
-test("objects", () =>
-  expect(
-    inspect(objects, { depth: Infinity }),
-  ).toMatchSnapshot(),
-)
+test("hashes", () => {
+  expect(hashes0).toMatchSnapshot()
+  expect(hashes1).toStrictEqual(hashes0)
+  expect(hashes2).toStrictEqual(hashes1)
+})
 
 const hashMap1 = new Map()
 const serialized = [...serialize(objects, { hashMap: hashMap1 })]
@@ -78,7 +66,7 @@ test("serialized", () =>
 )
 
 test("hashMap1", () =>
-  expect([...hashMap1.values()]).toMatchSnapshot(),
+  expect(hashMap1).toMatchSnapshot(),
 )
 
 const hashMap2 = new Map()
@@ -88,16 +76,12 @@ const deserialized = deserialize.withHash((async function*(){
 })(), { hashMap: hashMap2 })
 
 test("deserialized", async () =>
-  expect(
-    inspect(await (await deserialized).value, { depth: Infinity }),
-  ).toStrictEqual(
-    inspect(objects, { depth: Infinity }),
-  ),
+  expect((await deserialized).value).toStrictEqual(objects),
 )
 
 test("hashMap2", async () => {
   await deserialized
-  expect([...hashMap2.values()]).toMatchSnapshot()
+  expect(hashMap2).toMatchSnapshot()
 })
 
 test("deserializeHash", async () => {

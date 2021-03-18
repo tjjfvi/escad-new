@@ -68,6 +68,8 @@ function* _serialize(
     }
     const memoId = state.valueMemo.get(value)
     if(memoId !== undefined) {
+      if(memoId === null)
+        throw new Error("Attempted to serialize circular value")
       yield* writeId(memoId)
       if(hashMap) {
         const hash = state.idToHash.get(memoId)
@@ -211,7 +213,7 @@ function* _serialize(
 
 class SerializeState {
 
-  valueMemo = new Map<unknown, number>()
+  valueMemo = new Map<unknown, number | null>()
   hashMemo = new Map<unknown, number>()
   idToHash = new Map<number, string>()
   idN = 1
