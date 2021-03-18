@@ -1,12 +1,17 @@
 
 import { serialize, deserialize } from "../src"
-import { inspect } from "util"
 
 let objects: unknown[] = [
   0,
   null,
   Math.SQRT1_2,
   NaN,
+  Number.MAX_SAFE_INTEGER,
+  Number.MAX_VALUE,
+  Number.MIN_SAFE_INTEGER,
+  Number.MIN_VALUE,
+  +Infinity,
+  -Infinity,
   undefined,
   "hello world",
   JSON.stringify({ hello: "world" }),
