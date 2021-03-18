@@ -50,9 +50,10 @@ function* _serialize(
     if(value === endMarker && hashMap) {
       const [value, hasher, id, start] = hasherStack.pop()!
       const hash = hasher.digest("hex")
-      hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
       if(!hasherStack.length)
         rootHash = hash
+      else
+        hasherStack[hasherStack.length - 1][1].update(hash, "hex")
       const hashMemoId = state.hashMemo.get(hash)
       hashMap.set(value, hash)
       if(hashMemoId && unwrite(totalPosition - start)) {
@@ -132,7 +133,10 @@ function* _serialize(
     if(hasher && !deferHasher && value !== endMarker) {
       const hash = hasher.digest("hex")
       state.idToHash.set(id, hash)
-      hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
+      if(!hasherStack.length)
+        rootHash = hash
+      else
+        hasherStack[hasherStack.length - 1][1].update(hash, "hex")
     }
 
     if(hasher && deferHasher)

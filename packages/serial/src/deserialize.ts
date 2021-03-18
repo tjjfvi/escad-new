@@ -81,6 +81,8 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
           hashMap.set(value, hash)
           idToHash.set(id, hash)
           targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+          if(!targetStack.length && outValue)
+            outValue.hash = hash
         }
         if(!targetStack.length)
           break

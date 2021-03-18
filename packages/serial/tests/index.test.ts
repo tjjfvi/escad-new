@@ -49,20 +49,14 @@ objects.push({
 
 objects.push(objects)
 
-const hashMap0 = new Map()
-
 objects.push(Object.fromEntries(objects.map(obj =>
-  [serialize.hash(obj, hashMap0), obj],
+  [serialize.hash(obj, new Map()), obj],
 )))
 
-test("hashMap0", () =>
-  expect([...serialize([...hashMap0.entries()])]).toMatchSnapshot(),
-)
-
-const hashMap0_5 = new Map()
+const hashMap0 = new Map()
 
 test("hashes", () =>
-  expect(objects.map(x => serialize.hash(x, hashMap0_5))).toMatchSnapshot(),
+  expect(objects.map(x => serialize.hash(x, hashMap0))).toMatchSnapshot(),
 )
 
 test("objects", () =>
@@ -72,25 +66,30 @@ test("objects", () =>
 )
 
 const hashMap1 = new Map()
-const serialized = [...serialize(objects)]
+const serialized = [...serialize(objects, { hashMap: hashMap1 })]
 
 test("serialized", () =>
-  expect(serialized).toMatchSnapshot(),
+  expect(
+    "\n" + serialized
+      .map(x => x.toString("hex"))
+      .join("")
+      .replace(/.{64}/g, "$&\n"),
+  ).toMatchSnapshot(),
 )
 
 test("hashMap1", () =>
-  expect([...serialize([...hashMap1.entries()])]).toMatchSnapshot(),
+  expect([...hashMap1.values()]).toMatchSnapshot(),
 )
 
 const hashMap2 = new Map()
-const deserialized = deserialize((async function*(){
+const deserialized = deserialize.withHash((async function*(){
   for(const value of serialized)
     yield value
-})())
+})(), { hashMap: hashMap2 })
 
 test("deserialized", async () =>
   expect(
-    inspect(await deserialized, { depth: Infinity }),
+    inspect(await (await deserialized).value, { depth: Infinity }),
   ).toStrictEqual(
     inspect(objects, { depth: Infinity }),
   ),
@@ -98,5 +97,10 @@ test("deserialized", async () =>
 
 test("hashMap2", async () => {
   await deserialized
-  expect([...serialize([...hashMap2.entries()])]).toMatchSnapshot()
+  expect([...hashMap2.values()]).toMatchSnapshot()
+})
+
+test("deserializeHash", async () => {
+  await deserialized
+  expect((await deserialized).hash).toEqual(hashMap1.get(objects))
 })
