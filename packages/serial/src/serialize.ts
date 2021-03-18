@@ -89,7 +89,6 @@ function* _serialize(
     const id = state.idN++
     let hasher = hashMap && createHash("sha256")
     let deferHasher = false
-    yield* writeId(0)
     state.valueMemo.set(value, id)
     if(typeof value === "object" || typeof value === "function")
       if(Array.isArray(value)) {
@@ -128,7 +127,7 @@ function* _serialize(
     else if(typeof value === "boolean")
       yield* writeKind(value ? Kind.true : Kind.false, hasher)
     else if(value === endMarker)
-      yield* writeKind(Kind.end)
+      yield* writeKind(Kind.end, hasher)
     else
       throw new Error(`Cannot serialize value of type "${typeof value}"`)
 
@@ -159,7 +158,7 @@ function* _serialize(
   }
 
   function writeKind(kind: Kind, hasher?: Hasher){
-    return write(1, buf => buf.writeUInt8(kind), hasher)
+    return write(4, buf => buf.writeUInt32LE(kind), hasher)
   }
 
   function writeId(id: number){
@@ -216,6 +215,6 @@ class SerializeState {
   valueMemo = new Map<unknown, number | null>()
   hashMemo = new Map<unknown, number>()
   idToHash = new Map<number, string>()
-  idN = 1
+  idN = Kind.MAX + 1
 
 }

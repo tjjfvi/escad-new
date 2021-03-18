@@ -10,6 +10,7 @@ export enum Kind {
   array = 7,
   buffer = 8,
   undefined = 9,
+  MAX = 32,
 }
 
 export const endMarker = Symbol()

@@ -39,7 +39,7 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
     | [Record<string, unknown>, Hasher | undefined, number, string | undefined]
   const memo = new Map<number, unknown>()
   const idToHash = new Map<number, string>()
-  let idN = 1
+  let idN = Kind.MAX + 1
   const iterator = stream[Symbol.asyncIterator]()
   const readQueue: Buffer[] = []
   let readQueueLength = 0
@@ -55,15 +55,16 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
       const oldTargetStackLength = targetStack.length
       let value: unknown
       let hash: string | undefined
-      let id = await readId()
-      if(id) {
+      const hasher = hashMap && createHash("sha256")
+      let id = await readId(hasher)
+      if(id > Kind.MAX) {
         value = memo.get(id)
         hash = idToHash.get(id)
       }
       else {
+        const kind = id
         id = idN++
-        const hasher = hashMap && createHash("sha256")
-        value = await readValue(id, hasher)
+        value = await readValue(id, kind, hasher)
         if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
           hash = hasher.digest("hex")
           idToHash.set(id, hash)
@@ -107,8 +108,7 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
     yield outValue!
   }
 
-  async function readValue(id: number, hasher?: Hasher): Promise<unknown>{
-    const kind = await readKind(hasher)
+  async function readValue(id: number, kind: Kind, hasher?: Hasher): Promise<unknown>{
     if(kind === Kind.array) {
       const value: unknown[] = []
       targetStack.push([value, hasher, id])
@@ -138,14 +138,12 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
     throw new Error(`Invalid kind ${kind}`)
   }
 
-  async function readKind(hasher?: Hasher): Promise<Kind>{
-    const buf = await read(1, hasher)
-    const kind = buf[0]
-    return kind
-  }
-
-  async function readId(){
-    return await read(4).then(buf => buf.readUInt32LE())
+  async function readId(hasher?: Hasher){
+    const buf = await read(4)
+    const id = buf.readUInt32LE()
+    if(id <= Kind.MAX)
+      hasher?.update(buf)
+    return id
   }
 
   async function peek(length: number){
