@@ -1,5 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`errors on circular 1`] = `"Attempted to serialize circular value"`;
+
 exports[`hashMap1 1`] = `
 Map {
   Object {

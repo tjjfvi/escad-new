@@ -91,3 +91,9 @@ test("deserializeHash", async () => {
   await deserialized
   expect((await deserialized).hash).toEqual(hashMap1.get(objects))
 })
+
+test("errors on circular", () => {
+  const circular: any = {}
+  circular.circular = circular
+  expect(() => [...serialize(circular)]).toThrowErrorMatchingSnapshot()
+})

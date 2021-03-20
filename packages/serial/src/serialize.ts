@@ -131,6 +131,9 @@ function* _serialize(
     else
       throw new Error(`Cannot serialize value of type "${typeof value}"`)
 
+    if(deferHasher)
+      state.valueMemo.set(value, null)
+
     if(hasher && !deferHasher && value !== endMarker) {
       const hash = hasher.digest("hex")
       state.idToHash.set(id, hash)
