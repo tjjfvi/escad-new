@@ -53,6 +53,7 @@ function* _serialize(
       else
         hasherStack[hasherStack.length - 1][1].update(hash, "hex")
       const hashMemoId = hashMemo.get(hash)
+      valueMemo.set(value, id)
       hashMap.set(value, hash)
       if(hashMemoId && unwrite(totalPosition - start)) {
         idN = id

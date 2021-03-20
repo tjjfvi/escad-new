@@ -1,6 +1,8 @@
 
 import { serialize, deserialize } from "../src"
 
+const helloWorldObj = { hello: "world" }
+
 let objects: unknown[] = [
   0,
   null,
@@ -15,7 +17,7 @@ let objects: unknown[] = [
   undefined,
   "hello world",
   JSON.stringify({ hello: "world" }),
-  { hello: "world" },
+  helloWorldObj,
   { hello: "world" },
   // eslint-disable-next-line max-len
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent in sem porttitor, egestas lacus eu, aliquet mi. Maecenas laoreet, purus in malesuada finibus, odio lacus finibus felis, et iaculis quam dolor vel velit. Morbi vel ornare purus. Phasellus et lacus tempor, fringilla lectus nec, ullamcorper justo. Duis id porttitor massa, vel facilisis ligula. Vestibulum vitae pretium sem. Curabitur diam diam, finibus quis efficitur ut, sodales eget mi. Vestibulum sed egestas lectus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae",
