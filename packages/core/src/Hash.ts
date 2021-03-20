@@ -1,13 +1,14 @@
 
-import crypto from "crypto"
+import { serialize } from "@escad/serial"
 import { timers } from "./Timer"
 
+// eslint-disable-next-line @typescript-eslint/ban-types
+const hashMap = new WeakMap<object, string>()
+
 export const Hash = {
-  create: timers.hash.time(<T>(obj: T): Hash<T> => {
-    const hash = crypto.createHash("sha256")
-    hash.update(timers.stringifyHash.time(JSON.stringify)(obj))
-    return hash.digest("hex") as Hash<T>
-  }),
+  create: timers.hash.time(<T>(obj: T): Hash<T> =>
+    serialize.hash(obj, hashMap) as Hash<T>,
+  ),
   equal: (a: unknown, b: unknown) => {
     if(a === b)
       return true
@@ -21,6 +22,7 @@ export const Hash = {
   },
   check: <T>(hash: Hash<T>, value: unknown): value is T & NonExhaustive =>
     Hash.create(value) === hash,
+  hashMap,
 }
 
 export type Hash<T> = string & { __hash__: T }

@@ -99,7 +99,7 @@ function* _serialize(
       }
       else if(value instanceof Buffer) {
         yield* writeKind(Kind.buffer, hasher)
-        yield* write(4, buf => buf.writeUInt32LE(value.length), hasher)
+        yield* write(4, buf => buf.writeUInt32LE(value.length, 0), hasher)
         yield* writeBuffer(value, hasher)
       }
       else if(value === null)
@@ -113,9 +113,9 @@ function* _serialize(
         deferHasher = true
       }
     else if(typeof value === "string") {
-      yield* writeKind(Kind.string, hasher)
-      yield* write(4, buf => buf.writeUInt32LE(value.length), hasher)
-      yield* write(value.length, buf => buf.write(value, "utf8"), hasher)
+      yield* writeKind(Kind.string, hasher),
+      yield* write(4, buf => buf.writeUInt32LE(value.length, 0), hasher)
+      yield* write(value.length, buf => buf.write(value, 0, "utf8"), hasher)
     }
     else if(typeof value === "number") {
       yield* writeKind(Kind.number, hasher)
@@ -160,11 +160,11 @@ function* _serialize(
   }
 
   function writeKind(kind: Kind, hasher?: Hasher){
-    return write(4, buf => buf.writeUInt32LE(kind), hasher)
+    return write(4, buf => buf.writeUInt32LE(kind, 0), hasher)
   }
 
   function writeId(id: number){
-    return write(4, buf => buf.writeUInt32LE(id))
+    return write(4, buf => buf.writeUInt32LE(id, 0))
   }
 
   function* writeBuffer(buffer: Buffer, hasher?: Hasher){

@@ -3,6 +3,10 @@ import { WeakCache } from "./WeakCache"
 import { Hash } from "./Hash"
 import { ArtifactStore } from "./ArtifactStore"
 import { timers } from "./Timer"
+import { deserialize, serialize } from "@escad/serial"
+
+const timedSerialize = timers.serialize.time(serialize)
+const timedDeserialize = timers.deserialize.time(deserialize.sync)
 
 export class ArtifactManager {
 
@@ -13,13 +17,13 @@ export class ArtifactManager {
   private serialize(artifact: unknown): Buffer{
     return artifact instanceof Buffer
       ? artifact
-      : Buffer.from(timers.stringifySerialize.time(JSON.stringify)(artifact))
+      : Buffer.concat([...timedSerialize(artifact, { hashMap: Hash.hashMap })])
   }
 
   private deserialize(buffer: unknown): unknown{
     if(!(buffer instanceof Buffer)) return buffer
     try {
-      return JSON.parse(buffer.toString("utf8"))
+      return timedDeserialize([buffer], { hashMap: Hash.hashMap })
     }
     catch (e) {
       return buffer
@@ -73,8 +77,7 @@ export class ArtifactManager {
         const buffer = await store.lookupRaw?.(hash, this)
         if(!buffer) continue
         const artifact = this.deserialize(buffer)
-        if(Hash.check(hash, artifact))
-          return artifact
+        return artifact as T
       }
     return null
   }

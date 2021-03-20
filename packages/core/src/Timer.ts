@@ -44,8 +44,8 @@ export class Timer {
 }
 
 export const timers = {
-  stringifySerialize: new Timer(),
-  stringifyHash: new Timer(),
+  serialize: new Timer(),
+  deserialize: new Timer(),
   hash: new Timer(),
   getProductType: new Timer(),
 }

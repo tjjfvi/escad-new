@@ -134,19 +134,19 @@ function* _deserialize({ hashMap }: DeserializeOptions = {}): Deser<{ value: unk
     if(kind === Kind.undefined)
       return undefined
     if(kind === Kind.string)
-      return (yield* read((yield* read(4, hasher)).readUInt32LE(), hasher)).toString("utf8")
+      return (yield* read((yield* read(4, hasher)).readUInt32LE(0), hasher)).toString("utf8")
     if(kind === Kind.true)
       return true
     if(kind === Kind.false)
       return false
     if(kind === Kind.buffer)
-      return yield* read((yield* read(4, hasher)).readUInt32LE(), hasher)
+      return yield* read((yield* read(4, hasher)).readUInt32LE(0), hasher)
     throw new Error(`Invalid kind ${kind}`)
   }
 
   function* readId(hasher?: Hasher): Deser<number>{
     const buf = yield* read(4)
-    const id = buf.readUInt32LE()
+    const id = buf.readUInt32LE(0)
     if(id <= Kind.MAX)
       hasher?.update(buf)
     return id
