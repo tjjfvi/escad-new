@@ -10,20 +10,48 @@ export interface DeserializeOptions {
 }
 
 export async function deserialize(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
-  const result = await _deserialize(stream, options)
+  return (await deserializeWithHash(stream, options)).value
+}
+
+deserialize.withHash = deserializeWithHash
+deserialize.sync = deserializeSync
+deserializeSync.withHash = deserializeSyncWithHash
+
+export async function deserializeSync(stream: Iterable<Buffer>, options?: DeserializeOptions){
+  return deserializeSyncWithHash(stream, options).value
+}
+
+async function deserializeWithHash(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
+  const deser = _deserialize(options)
+  const iterator = stream[Symbol.asyncIterator]()
+  let result = deser.next()
+  while(!result.done) {
+    const { value, done } = await iterator.next()
+    result = deser.next(done ? undefined : value)
+  }
   return result.value
 }
 
-deserialize.withHash = _deserialize
+function deserializeSyncWithHash(stream: Iterable<Buffer>, options?: DeserializeOptions){
+  const deser = _deserialize(options)
+  const iterator = stream[Symbol.iterator]()
+  let result = deser.next()
+  do {
+    const { value, done } = iterator.next()
+    result = deser.next(done ? undefined : value)
+  } while(!result.done)
+  return result.value
+}
 
-async function _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: DeserializeOptions = {}){
+type Deser<T> = Generator<undefined, T, Buffer | undefined>
+
+function* _deserialize({ hashMap }: DeserializeOptions = {}): Deser<{ value: unknown, hash: string }>{
   type Target =
     | [unknown[], Hasher | undefined, number]
     | [Record<string, unknown>, Hasher | undefined, number, string | undefined]
   const memo = new Map<number, unknown>()
   const idToHash = new Map<number, string>()
   let idN = Kind.MAX + 1
-  const iterator = stream[Symbol.asyncIterator]()
   const readQueue: Buffer[] = []
   let readQueueLength = 0
   const targetStack: Target[] = []
@@ -34,7 +62,7 @@ async function _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deserial
     let value: unknown
     let hash: string | undefined
     const hasher = hashMap && createHash("sha256")
-    let id = await readId(hasher)
+    let id = yield* readId(hasher)
     if(id > Kind.MAX) {
       value = memo.get(id)
       hash = idToHash.get(id)
@@ -42,7 +70,7 @@ async function _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deserial
     else {
       const kind = id
       id = idN++
-      value = await readValue(id, kind, hasher)
+      value = yield* readValue(id, kind, hasher)
       if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
         hash = hasher.digest("hex")
         idToHash.set(id, hash)
@@ -84,9 +112,9 @@ async function _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deserial
     }
   }
 
-  return outValue!
+  return { value: outValue!.value, hash: outValue!.hash! }
 
-  async function readValue(id: number, kind: Kind, hasher?: Hasher): Promise<unknown>{
+  function* readValue(id: number, kind: Kind, hasher?: Hasher): Deser<unknown>{
     if(kind === Kind.array) {
       const value: unknown[] = []
       targetStack.push([value, hasher, id])
@@ -100,43 +128,43 @@ async function _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deserial
     if(kind === Kind.end)
       return endMarker
     if(kind === Kind.number)
-      return ieee754.read(await read(8, hasher), 0, true, 52, 8)
+      return ieee754.read(yield* read(8, hasher), 0, true, 52, 8)
     if(kind === Kind.null)
       return null
     if(kind === Kind.undefined)
       return undefined
     if(kind === Kind.string)
-      return (await read((await read(4, hasher)).readUInt32LE(), hasher)).toString("utf8")
+      return (yield* read((yield* read(4, hasher)).readUInt32LE(), hasher)).toString("utf8")
     if(kind === Kind.true)
       return true
     if(kind === Kind.false)
       return false
     if(kind === Kind.buffer)
-      return await read((await read(4, hasher)).readUInt32LE(), hasher)
+      return yield* read((yield* read(4, hasher)).readUInt32LE(), hasher)
     throw new Error(`Invalid kind ${kind}`)
   }
 
-  async function readId(hasher?: Hasher){
-    const buf = await read(4)
+  function* readId(hasher?: Hasher): Deser<number>{
+    const buf = yield* read(4)
     const id = buf.readUInt32LE()
     if(id <= Kind.MAX)
       hasher?.update(buf)
     return id
   }
 
-  async function peek(length: number){
+  function* peek(length: number): Deser<boolean>{
     while(length > readQueueLength) {
-      const result = await iterator.next()
-      if(result.done) return false
-      if(result.value.length)
-        readQueue.push(result.value)
-      readQueueLength += result.value.length
+      const buffer = yield void 0
+      if(!buffer) return false
+      if(buffer.length)
+        readQueue.push(buffer)
+      readQueueLength += buffer.length
     }
     return true
   }
 
-  async function read(length: number, hasher?: Hasher){
-    if(!(await peek(length)))
+  function* read(length: number, hasher?: Hasher): Deser<Buffer>{
+    if(!(yield* peek(length)))
       throw new Error("Unexpected EOF")
 
     readQueueLength -= length

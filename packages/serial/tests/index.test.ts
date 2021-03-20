@@ -73,24 +73,19 @@ test("hashMap1", () =>
 )
 
 const hashMap2 = new Map()
-const deserialized = deserialize.withHash((async function*(){
-  for(const value of serialized)
-    yield value
-})(), { hashMap: hashMap2 })
+const deserialized = deserialize.sync.withHash(serialized, { hashMap: hashMap2 })
 
-test("deserialized", async () =>
-  expect((await deserialized).value).toStrictEqual(objects),
+test("deserialized", () =>
+  expect(deserialized.value).toStrictEqual(objects),
 )
 
-test("hashMap2", async () => {
-  await deserialized
-  expect(hashMap2).toMatchSnapshot()
-})
+test("hashMap2", () =>
+  expect(hashMap2).toMatchSnapshot(),
+)
 
-test("deserializeHash", async () => {
-  await deserialized
-  expect((await deserialized).hash).toEqual(hashMap1.get(objects))
-})
+test("deserializeHash", () =>
+  expect(deserialized.hash).toEqual(hashMap1.get(objects)),
+)
 
 test("errors on circular", () => {
   const circular: any = {}
