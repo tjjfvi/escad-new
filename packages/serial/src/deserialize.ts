@@ -10,30 +10,13 @@ export interface DeserializeOptions {
 }
 
 export async function deserialize(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
-  const result = await _deserializeSingular(stream, options)
+  const result = await _deserialize(stream, options)
   return result.value
 }
 
-deserialize.withHash = _deserializeSingular
+deserialize.withHash = _deserialize
 
-deserialize.stream = _deserializeStream
-
-_deserializeStream.withHash = (stream: AsyncIterable<Buffer>, options?: DeserializeOptions) =>
-  _deserialize(stream, options)
-
-async function _deserializeStream(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
-  return _deserialize(stream, options)
-}
-
-async function _deserializeSingular(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
-  const iterator = _deserialize(stream, options, true)
-  const result = await iterator.next()
-  if(result.done)
-    throw new Error("Empty stream passed to singular deserialization")
-  return result.value
-}
-
-async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: DeserializeOptions = {}, single = false){
+async function _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: DeserializeOptions = {}){
   type Target =
     | [unknown[], Hasher | undefined, number]
     | [Record<string, unknown>, Hasher | undefined, number, string | undefined]
@@ -44,69 +27,64 @@ async function* _deserialize(stream: AsyncIterable<Buffer>, { hashMap }: Deseria
   const readQueue: Buffer[] = []
   let readQueueLength = 0
   const targetStack: Target[] = []
-  let first = true
-  while(await peek(1)) {
-    if(single && !first)
-      throw new Error("Expected EOF")
-    first = false
-    let outValue: { value: unknown, hash: string | undefined } | undefined
-    while(true) {
-      const target = targetStack[targetStack.length - 1]
-      const oldTargetStackLength = targetStack.length
-      let value: unknown
-      let hash: string | undefined
-      const hasher = hashMap && createHash("sha256")
-      let id = await readId(hasher)
-      if(id > Kind.MAX) {
-        value = memo.get(id)
-        hash = idToHash.get(id)
-      }
-      else {
-        const kind = id
-        id = idN++
-        value = await readValue(id, kind, hasher)
-        if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
-          hash = hasher.digest("hex")
-          idToHash.set(id, hash)
-          if(typeof value === "object" && value)
-            hashMap.set(value, hash)
-        }
-        memo.set(id, value)
-      }
-      if(hash && value !== endMarker) target[1]?.update(hash, "hex")
-      if(value === endMarker) {
-        targetStack.pop()
-        const [value, hasher, id] = target
-        if(hashMap && hasher) {
-          const hash = hasher.digest("hex")
-          hashMap.set(value, hash)
-          idToHash.set(id, hash)
-          targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
-          if(!targetStack.length && outValue)
-            outValue.hash = hash
-        }
-        if(!targetStack.length)
-          break
-        continue
-      }
-      if(!target) {
-        outValue = { value, hash }
-        continue
-      }
-      if(target.length === 3)
-        target[0].push(value)
-      else if(target[3] !== undefined) {
-        target[0][target[3]] = value
-        target[3] = undefined
-      }
-      else {
-        if(typeof value !== "string")
-          throw new Error("Invalid key for object")
-        target[3] = value
-      }
+  let outValue: { value: unknown, hash: string | undefined } | undefined
+  while(true) {
+    const target = targetStack[targetStack.length - 1]
+    const oldTargetStackLength = targetStack.length
+    let value: unknown
+    let hash: string | undefined
+    const hasher = hashMap && createHash("sha256")
+    let id = await readId(hasher)
+    if(id > Kind.MAX) {
+      value = memo.get(id)
+      hash = idToHash.get(id)
     }
-    yield outValue!
+    else {
+      const kind = id
+      id = idN++
+      value = await readValue(id, kind, hasher)
+      if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
+        hash = hasher.digest("hex")
+        idToHash.set(id, hash)
+        if(typeof value === "object" && value)
+          hashMap.set(value, hash)
+      }
+      memo.set(id, value)
+    }
+    if(hash && value !== endMarker) target[1]?.update(hash, "hex")
+    if(value === endMarker) {
+      targetStack.pop()
+      const [value, hasher, id] = target
+      if(hashMap && hasher) {
+        const hash = hasher.digest("hex")
+        hashMap.set(value, hash)
+        idToHash.set(id, hash)
+        targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+        if(!targetStack.length && outValue)
+          outValue.hash = hash
+      }
+      if(!targetStack.length)
+        break
+      continue
+    }
+    if(!target) {
+      outValue = { value, hash }
+      continue
+    }
+    if(target.length === 3)
+      target[0].push(value)
+    else if(target[3] !== undefined) {
+      target[0][target[3]] = value
+      target[3] = undefined
+    }
+    else {
+      if(typeof value !== "string")
+        throw new Error("Invalid key for object")
+      target[3] = value
+    }
   }
+
+  return outValue!
 
   async function readValue(id: number, kind: Kind, hasher?: Hasher): Promise<unknown>{
     if(kind === Kind.array) {

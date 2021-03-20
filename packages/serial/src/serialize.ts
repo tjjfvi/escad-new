@@ -24,11 +24,6 @@ serialize.hash = (value: unknown, hashMap: WeakMap<object, string>) => {
   }
 }
 
-serialize.stream = async function* (stream: AsyncIterable<unknown>, options?: SerializeOptions){
-  for await (const value of stream)
-    yield* _serialize(value, options)
-}
-
 function* _serialize(
   rootValue: unknown,
   {
@@ -36,8 +31,11 @@ function* _serialize(
     chunkMinSize = chunkSize / 2,
     hashMap,
   }: SerializeOptions = {},
-  state = new SerializeState(),
 ){
+  const valueMemo = new Map<unknown, number | null>()
+  const hashMemo = new Map<unknown, number>()
+  const idToHash = new Map<number, string>()
+  let idN = Kind.MAX + 1
   let currentChunk: Buffer | undefined
   let currentInd = 0
   let totalPosition = 0
@@ -54,42 +52,42 @@ function* _serialize(
         rootHash = hash
       else
         hasherStack[hasherStack.length - 1][1].update(hash, "hex")
-      const hashMemoId = state.hashMemo.get(hash)
+      const hashMemoId = hashMemo.get(hash)
       hashMap.set(value, hash)
       if(hashMemoId && unwrite(totalPosition - start)) {
-        state.idN = id
+        idN = id
         yield* writeId(hashMemoId)
         continue
       }
       else {
-        state.hashMemo.set(hash, id)
-        state.idToHash.set(id, hash)
+        hashMemo.set(hash, id)
+        idToHash.set(id, hash)
       }
     }
-    const memoId = state.valueMemo.get(value)
+    const memoId = valueMemo.get(value)
     if(memoId !== undefined) {
       if(memoId === null)
         throw new Error("Attempted to serialize circular value")
       yield* writeId(memoId)
       if(hashMap) {
-        const hash = state.idToHash.get(memoId)
+        const hash = idToHash.get(memoId)
         if(hash) hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
       }
       continue
     }
     if(hashMap && typeof value === "object" && value) {
       const hash = hashMap.get(value)
-      const hashMemoId = state.hashMemo.get(hash!)
+      const hashMemoId = hashMemo.get(hash!)
       if(hash && hashMemoId) {
         yield* writeId(hashMemoId)
         hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
         continue
       }
     }
-    const id = state.idN++
+    const id = idN++
     let hasher = hashMap && createHash("sha256")
     let deferHasher = false
-    state.valueMemo.set(value, id)
+    valueMemo.set(value, id)
     if(typeof value === "object" || typeof value === "function")
       if(Array.isArray(value)) {
         yield* writeKind(Kind.array, hasher)
@@ -132,11 +130,11 @@ function* _serialize(
       throw new Error(`Cannot serialize value of type "${typeof value}"`)
 
     if(deferHasher)
-      state.valueMemo.set(value, null)
+      valueMemo.set(value, null)
 
     if(hasher && !deferHasher && value !== endMarker) {
       const hash = hasher.digest("hex")
-      state.idToHash.set(id, hash)
+      idToHash.set(id, hash)
       if(!hasherStack.length)
         rootHash = hash
       else
@@ -211,13 +209,4 @@ function* _serialize(
     currentInd += length
     totalPosition += length
   }
-}
-
-class SerializeState {
-
-  valueMemo = new Map<unknown, number | null>()
-  hashMemo = new Map<unknown, number>()
-  idToHash = new Map<number, string>()
-  idN = Kind.MAX + 1
-
 }
