@@ -43,3 +43,35 @@ export enum Kind {
 }
 
 export const endMarker = Symbol()
+
+export class Stack<T> {
+
+  private arr: T[] = []
+
+  get length(){
+    return this.arr.length
+  }
+
+  pop(): T | undefined{
+    return this.arr.pop()
+  }
+
+  peek(): T | undefined{
+    return this.arr[this.arr.length - 1]
+  }
+
+  push(...values: T[]){
+    for(let i = values.length - 1; i >= 0; i--)
+      this.arr.push(values[i])
+  }
+
+  [Symbol.iterator](){
+    return {
+      next: () =>
+        this.length
+          ? { value: this.pop() as T, done: false }
+          : { done: true },
+    }
+  }
+
+}

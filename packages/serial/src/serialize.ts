@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import ieee754 from "ieee754"
-import { endMarker, Hasher, Kind } from "./utils"
+import { endMarker, Hasher, Kind, Stack } from "./utils"
 
 export interface SerializeOptions {
   chunkSize?: number,
@@ -33,6 +33,12 @@ function* _serialize(
     hasher: createHasher = Hasher.crypto,
   }: SerializeOptions = {},
 ){
+  type HasherStackElement = {
+    value: object,
+    hasher: Hasher,
+    id: number,
+    start: number,
+  }
   const valueMemo = new Map<unknown, number | null>()
   const hashMemo = new Map<unknown, number>()
   const idToHash = new Map<number, string>()
@@ -41,111 +47,40 @@ function* _serialize(
   let currentInd = 0
   let totalPosition = 0
   let rootHash: string | undefined
-  const stack = [rootValue]
-  const hasherStack: [value: object, hasher: Hasher, id: number, start: number][] = []
-  while(stack.length) {
+  const valueStack = new Stack()
+  valueStack.push(rootValue)
+  const hasherStack = new Stack<HasherStackElement>()
+  for(const value of valueStack) {
     const start = totalPosition
-    const value = stack.pop()
-    if(value === endMarker && hashMap) {
-      const [value, hasher, id, start] = hasherStack.pop()!
-      const hash = hasher.digest()
-      if(!hasherStack.length)
-        rootHash = hash
-      else
-        hasherStack[hasherStack.length - 1][1].update(hash)
-      const hashMemoId = hashMemo.get(hash)
-      valueMemo.set(value, id)
-      hashMap.set(value, hash)
-      if(hashMemoId && unwrite(totalPosition - start)) {
-        valueMemo.set(value, hashMemoId)
-        idN = id
-        yield* writeId(hashMemoId)
-        continue
-      }
-      else {
-        hashMemo.set(hash, id)
-        idToHash.set(id, hash)
-      }
-    }
-    const memoId = valueMemo.get(value)
-    if(memoId !== undefined) {
-      if(memoId === null)
-        throw new Error("Attempted to serialize circular value")
-      yield* writeId(memoId)
-      if(hashMap) {
-        const hash = idToHash.get(memoId)
-        if(hash) hasherStack[hasherStack.length - 1]?.[1].update(hash)
-      }
+
+    if(value === endMarker && (yield* popHasher()))
       continue
-    }
-    if(hashMap && typeof value === "object" && value) {
-      const hash = hashMap.get(value)
-      const hashMemoId = hashMemo.get(hash!)
-      if(hash && hashMemoId) {
-        yield* writeId(hashMemoId)
-        hasherStack[hasherStack.length - 1]?.[1].update(hash)
-        continue
-      }
-    }
+    if(yield* checkValueMemo(value))
+      continue
+    if(yield* checkHashMemo(value))
+      continue
+
     const id = idN++
-    let hasher = hashMap && createHasher()
-    let deferHasher = false
     valueMemo.set(value, id)
-    if(typeof value === "object" || typeof value === "function")
-      if(Array.isArray(value)) {
-        yield* writeKind(Kind.array, hasher)
-        stack.push(endMarker)
-        for(let i = value.length - 1; i >= 0; i--)
-          stack.push(value[i])
-        deferHasher = true
-      }
-      else if(value instanceof Buffer) {
-        yield* writeKind(Kind.buffer, hasher)
-        yield* write(4, buf => buf.writeUInt32LE(value.length, 0), hasher)
-        yield* writeBuffer(value, hasher)
-      }
-      else if(value === null)
-        yield* writeKind(Kind.null, hasher)
-      else {
-        yield* writeKind(Kind.object, hasher)
-        stack.push(endMarker)
-        const keys = Object.keys(value)
-        for(let i = keys.length - 1; i >= 0; i--)
-          stack.push(value[keys[i] as never], keys[i])
-        deferHasher = true
-      }
-    else if(typeof value === "string") {
-      yield* writeKind(Kind.string, hasher),
-      yield* write(4, buf => buf.writeUInt32LE(value.length, 0), hasher)
-      yield* write(value.length, buf => buf.write(value, 0, "utf8"), hasher)
-    }
-    else if(typeof value === "number") {
-      yield* writeKind(Kind.number, hasher)
-      yield* write(8, buf => ieee754.write(buf, value, 0, true, 52, 8), hasher)
-    }
-    else if(value === undefined)
-      yield* writeKind(Kind.undefined, hasher)
-    else if(typeof value === "boolean")
-      yield* writeKind(value ? Kind.true : Kind.false, hasher)
-    else if(value === endMarker)
-      yield* writeKind(Kind.end, hasher)
-    else
-      throw new Error(`Cannot serialize value of type "${typeof value}"`)
+    const prevValueStack = valueStack.length
+    let hasher = hashMap && createHasher()
 
-    if(deferHasher)
-      valueMemo.set(value, null)
+    yield* writeValue(value)
 
-    if(hasher && !deferHasher && value !== endMarker) {
+    if(!hasher || value === endMarker)
+      continue
+
+    const leaf = valueStack.length === prevValueStack
+
+    if(leaf) {
       const hash = hasher.digest()
       idToHash.set(id, hash)
-      if(!hasherStack.length)
-        rootHash = hash
-      else
-        hasherStack[hasherStack.length - 1][1].update(hash)
+      pushHash(hash)
     }
-
-    if(hasher && deferHasher)
-      hasherStack.push([value as object, hasher, id, start])
+    else {
+      valueMemo.set(value, null)
+      hasherStack.push({ value: value as object, hasher, id, start })
+    }
   }
 
   if(currentChunk)
@@ -211,5 +146,102 @@ function* _serialize(
 
     currentInd += length
     totalPosition += length
+  }
+
+  function* popHasher(){
+    if(!hashMap)
+      return false
+    const { value, hasher, id, start } = hasherStack.pop()!
+    const hash = hasher.digest()
+    pushHash(hash)
+    const hashMemoId = hashMemo.get(hash)
+    valueMemo.set(value, id)
+    hashMap!.set(value, hash)
+    if(hashMemoId && unwrite(totalPosition - start)) {
+      valueMemo.set(value, hashMemoId)
+      idN = id
+      yield* writeId(hashMemoId)
+      return true
+    }
+    else {
+      hashMemo.set(hash, id)
+      idToHash.set(id, hash)
+      return false
+    }
+  }
+
+  function* checkValueMemo(value: unknown){
+    const memoId = valueMemo.get(value)
+    if(memoId !== undefined) {
+      if(memoId === null)
+        throw new Error("Attempted to serialize circular value")
+      yield* writeId(memoId)
+      if(hashMap) {
+        const hash = idToHash.get(memoId)
+        if(hash) pushHash(hash)
+      }
+      return true
+    }
+    return false
+  }
+
+  function* checkHashMemo(value: unknown){
+    if(!hashMap || typeof value !== "object" || !value)
+      return false
+    const hash = hashMap.get(value)
+    const hashMemoId = hashMemo.get(hash!)
+    if(hash && hashMemoId) {
+      yield* writeId(hashMemoId)
+      pushHash(hash)
+      return true
+    }
+  }
+
+  function* writeValue(value: unknown, hasher?: Hasher){
+    if(typeof value === "object" || typeof value === "function")
+      if(Array.isArray(value)) {
+        yield* writeKind(Kind.array, hasher)
+        valueStack.push(endMarker)
+        for(let i = value.length - 1; i >= 0; i--)
+          valueStack.push(value[i])
+      }
+      else if(value instanceof Buffer) {
+        yield* writeKind(Kind.buffer, hasher)
+        yield* write(4, buf => buf.writeUInt32LE(value.length, 0), hasher)
+        yield* writeBuffer(value, hasher)
+      }
+      else if(value === null)
+        yield* writeKind(Kind.null, hasher)
+      else {
+        yield* writeKind(Kind.object, hasher)
+        valueStack.push(endMarker)
+        const keys = Object.keys(value)
+        for(let i = keys.length - 1; i >= 0; i--)
+          valueStack.push(value[keys[i] as never], keys[i])
+      }
+    else if(typeof value === "string") {
+      yield* writeKind(Kind.string, hasher),
+      yield* write(4, buf => buf.writeUInt32LE(value.length, 0), hasher)
+      yield* write(value.length, buf => buf.write(value, 0, "utf8"), hasher)
+    }
+    else if(typeof value === "number") {
+      yield* writeKind(Kind.number, hasher)
+      yield* write(8, buf => ieee754.write(buf, value, 0, true, 52, 8), hasher)
+    }
+    else if(value === undefined)
+      yield* writeKind(Kind.undefined, hasher)
+    else if(typeof value === "boolean")
+      yield* writeKind(value ? Kind.true : Kind.false, hasher)
+    else if(value === endMarker)
+      yield* writeKind(Kind.end, hasher)
+    else
+      throw new Error(`Cannot serialize value of type "${typeof value}"`)
+  }
+
+  function pushHash(hash: string){
+    if(!hasherStack.length)
+      rootHash = hash
+    else
+      hasherStack.peek()!.hasher.update(hash)
   }
 }
