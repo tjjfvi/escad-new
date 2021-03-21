@@ -17,13 +17,13 @@ export class ArtifactManager {
   private serialize(artifact: unknown): Buffer{
     return artifact instanceof Buffer
       ? artifact
-      : Buffer.concat([...timedSerialize(artifact, { hashMap: Hash.hashMap })])
+      : Buffer.concat([...timedSerialize(artifact, { hashMap: Hash.hashMap, hasher: Hash.hasher })])
   }
 
   private deserialize(buffer: unknown): unknown{
     if(!(buffer instanceof Buffer)) return buffer
     try {
-      return timedDeserialize([buffer], { hashMap: Hash.hashMap })
+      return timedDeserialize([buffer], { hashMap: Hash.hashMap, hasher: Hash.hasher })
     }
     catch (e) {
       return buffer
@@ -77,7 +77,13 @@ export class ArtifactManager {
         const buffer = await store.lookupRaw?.(hash, this)
         if(!buffer) continue
         const artifact = this.deserialize(buffer)
-        return artifact as T
+        const receivedHash = Hash.create(artifact)
+        if(hash === receivedHash)
+          return artifact as T
+        else {
+          console.log(JSON.stringify(artifact))
+          throw new Error(`Received incorrect value from lookupRaw; expected hash ${hash}, received ${receivedHash}`)
+        }
       }
     return null
   }

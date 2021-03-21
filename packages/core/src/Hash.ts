@@ -1,5 +1,5 @@
 
-import { serialize } from "@escad/serial"
+import { Hasher, serialize } from "@escad/serial"
 import { timers } from "./Timer"
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -7,8 +7,9 @@ const hashMap = new WeakMap<object, string>()
 
 export const Hash = {
   create: timers.hash.time(<T>(obj: T): Hash<T> =>
-    serialize.hash(obj, hashMap) as Hash<T>,
+    serialize.hash(obj, Hash.hashMap, Hash.hasher) as Hash<T>,
   ),
+  debug: (value: unknown) => serialize.hash(value, new WeakMap(), Hasher.debug),
   equal: (a: unknown, b: unknown) => {
     if(a === b)
       return true
@@ -20,15 +21,8 @@ export const Hash = {
       return false
     return Hash.create(a) === Hash.create(b)
   },
-  check: <T>(hash: Hash<T>, value: unknown): value is T & NonExhaustive =>
-    Hash.create(value) === hash,
   hashMap,
+  hasher: Hasher.crypto,
 }
 
 export type Hash<T> = string & { __hash__: T }
-
-declare class NonExhaustive {
-
- private __nonExhaustive__: never
-
-}

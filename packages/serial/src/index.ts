@@ -1,6 +1,4 @@
 
-// @create-index {"mode":"*","ignore":["utils"]}
-
-export * from "./deserialize"
+export { Hasher } from "./utils"
 export * from "./serialize"
-
+export * from "./deserialize"

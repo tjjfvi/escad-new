@@ -2,21 +2,21 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import ieee754 from "ieee754"
-import { createHash, Hash as Hasher } from "crypto"
-import { endMarker, Kind } from "./utils"
+import { endMarker, Hasher, Kind } from "./utils"
 
 export interface SerializeOptions {
   chunkSize?: number,
   chunkMinSize?: number,
   hashMap?: WeakMap<object, string>,
+  hasher?: () => Hasher,
 }
 
 export function serialize(rootValue: unknown, options?: SerializeOptions){
   return _serialize(rootValue, options)
 }
 
-serialize.hash = (value: unknown, hashMap: WeakMap<object, string>) => {
-  const iterator = serialize(value, { hashMap })
+serialize.hash = (value: unknown, hashMap: WeakMap<object, string>, hasher?: () => Hasher) => {
+  const iterator = serialize(value, { hashMap, hasher })
   while(true) {
     const result = iterator.next()
     if(result.done)
@@ -30,6 +30,7 @@ function* _serialize(
     chunkSize = 1 << 14, // 16kb
     chunkMinSize = chunkSize / 2,
     hashMap,
+    hasher: createHasher = Hasher.crypto,
   }: SerializeOptions = {},
 ){
   const valueMemo = new Map<unknown, number | null>()
@@ -47,15 +48,16 @@ function* _serialize(
     const value = stack.pop()
     if(value === endMarker && hashMap) {
       const [value, hasher, id, start] = hasherStack.pop()!
-      const hash = hasher.digest("hex")
+      const hash = hasher.digest()
       if(!hasherStack.length)
         rootHash = hash
       else
-        hasherStack[hasherStack.length - 1][1].update(hash, "hex")
+        hasherStack[hasherStack.length - 1][1].update(hash)
       const hashMemoId = hashMemo.get(hash)
       valueMemo.set(value, id)
       hashMap.set(value, hash)
       if(hashMemoId && unwrite(totalPosition - start)) {
+        valueMemo.set(value, hashMemoId)
         idN = id
         yield* writeId(hashMemoId)
         continue
@@ -72,7 +74,7 @@ function* _serialize(
       yield* writeId(memoId)
       if(hashMap) {
         const hash = idToHash.get(memoId)
-        if(hash) hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
+        if(hash) hasherStack[hasherStack.length - 1]?.[1].update(hash)
       }
       continue
     }
@@ -81,12 +83,12 @@ function* _serialize(
       const hashMemoId = hashMemo.get(hash!)
       if(hash && hashMemoId) {
         yield* writeId(hashMemoId)
-        hasherStack[hasherStack.length - 1]?.[1].update(hash, "hex")
+        hasherStack[hasherStack.length - 1]?.[1].update(hash)
         continue
       }
     }
     const id = idN++
-    let hasher = hashMap && createHash("sha256")
+    let hasher = hashMap && createHasher()
     let deferHasher = false
     valueMemo.set(value, id)
     if(typeof value === "object" || typeof value === "function")
@@ -134,12 +136,12 @@ function* _serialize(
       valueMemo.set(value, null)
 
     if(hasher && !deferHasher && value !== endMarker) {
-      const hash = hasher.digest("hex")
+      const hash = hasher.digest()
       idToHash.set(id, hash)
       if(!hasherStack.length)
         rootHash = hash
       else
-        hasherStack[hasherStack.length - 1][1].update(hash, "hex")
+        hasherStack[hasherStack.length - 1][1].update(hash)
     }
 
     if(hasher && deferHasher)

@@ -16,6 +16,7 @@ import { Connection, createMessenger } from "@escad/messages"
 import { registeredPlugins } from "@escad/register-client-plugin"
 import { lookupRef } from "./lookupRef"
 import { RenderFunction } from "./renderFunction"
+import { writeFileSync } from "fs-extra"
 
 export const createRendererServerMessenger = (
   connection: Connection<unknown>,
@@ -101,8 +102,10 @@ export const createRendererServerMessenger = (
       }
       const el = Element.create<Product>(result)
       const products = await Promise.all((await Element.toArrayFlat(el)).map(p => artifactManager.storeRaw(p)))
-      const hierarchy = await artifactManager.storeRaw(await Hierarchy.from(el))
-      return { products, hierarchy }
+      const hierarchy = await Hierarchy.from(el)
+      const hierarchyHash = await artifactManager.storeRaw(hierarchy)
+      writeFileSync("./out", JSON.stringify(hierarchy))
+      return { products, hierarchy: hierarchyHash }
     }
   }
 

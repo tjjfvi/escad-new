@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import ieee754 from "ieee754"
-import { createHash, Hash as Hasher } from "crypto"
-import { endMarker, Kind } from "./utils"
+import { endMarker, Hasher, Kind } from "./utils"
 
 export interface DeserializeOptions {
   hashMap?: WeakMap<object, string>,
+  hasher?: () => Hasher,
 }
 
 export async function deserialize(stream: AsyncIterable<Buffer>, options?: DeserializeOptions){
@@ -17,7 +17,7 @@ deserialize.withHash = deserializeWithHash
 deserialize.sync = deserializeSync
 deserializeSync.withHash = deserializeSyncWithHash
 
-export async function deserializeSync(stream: Iterable<Buffer>, options?: DeserializeOptions){
+export function deserializeSync(stream: Iterable<Buffer>, options?: DeserializeOptions){
   return deserializeSyncWithHash(stream, options).value
 }
 
@@ -45,7 +45,10 @@ function deserializeSyncWithHash(stream: Iterable<Buffer>, options?: Deserialize
 
 type Deser<T> = Generator<undefined, T, Buffer | undefined>
 
-function* _deserialize({ hashMap }: DeserializeOptions = {}): Deser<{ value: unknown, hash: string }>{
+function* _deserialize({
+  hashMap,
+  hasher: createHasher = Hasher.crypto,
+}: DeserializeOptions = {}): Deser<{ value: unknown, hash: string }>{
   type Target =
     | [unknown[], Hasher | undefined, number]
     | [Record<string, unknown>, Hasher | undefined, number, string | undefined]
@@ -61,7 +64,7 @@ function* _deserialize({ hashMap }: DeserializeOptions = {}): Deser<{ value: unk
     const oldTargetStackLength = targetStack.length
     let value: unknown
     let hash: string | undefined
-    const hasher = hashMap && createHash("sha256")
+    const hasher = hashMap && createHasher()
     let id = yield* readId(hasher)
     if(id > Kind.MAX) {
       value = memo.get(id)
@@ -72,22 +75,22 @@ function* _deserialize({ hashMap }: DeserializeOptions = {}): Deser<{ value: unk
       id = idN++
       value = yield* readValue(id, kind, hasher)
       if(hashMap && hasher && oldTargetStackLength === targetStack.length) {
-        hash = hasher.digest("hex")
+        hash = hasher.digest()
         idToHash.set(id, hash)
         if(typeof value === "object" && value)
           hashMap.set(value, hash)
       }
       memo.set(id, value)
     }
-    if(hash && value !== endMarker) target[1]?.update(hash, "hex")
+    if(hash && value !== endMarker) target[1]?.update(hash)
     if(value === endMarker) {
       targetStack.pop()
       const [value, hasher, id] = target
       if(hashMap && hasher) {
-        const hash = hasher.digest("hex")
+        const hash = hasher.digest()
         hashMap.set(value, hash)
         idToHash.set(id, hash)
-        targetStack[targetStack.length - 1]?.[1]?.update(hash, "hex")
+        targetStack[targetStack.length - 1]?.[1]?.update(hash)
         if(!targetStack.length && outValue)
           outValue.hash = hash
       }

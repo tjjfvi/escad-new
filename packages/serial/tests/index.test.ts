@@ -3,6 +3,9 @@ import { serialize, deserialize } from "../src"
 
 const helloWorldObj = { hello: "world" }
 
+// eslint-disable-next-line max-len
+const loremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent in sem porttitor, egestas lacus eu, aliquet mi. Maecenas laoreet, purus in malesuada finibus, odio lacus finibus felis, et iaculis quam dolor vel velit. Morbi vel ornare purus. Phasellus et lacus tempor, fringilla lectus nec, ullamcorper justo. Duis id porttitor massa, vel facilisis ligula. Vestibulum vitae pretium sem. Curabitur diam diam, finibus quis efficitur ut, sodales eget mi. Vestibulum sed egestas lectus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae"
+
 let objects: unknown[] = [
   0,
   null,
@@ -19,8 +22,7 @@ let objects: unknown[] = [
   JSON.stringify({ hello: "world" }),
   helloWorldObj,
   { hello: "world" },
-  // eslint-disable-next-line max-len
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent in sem porttitor, egestas lacus eu, aliquet mi. Maecenas laoreet, purus in malesuada finibus, odio lacus finibus felis, et iaculis quam dolor vel velit. Morbi vel ornare purus. Phasellus et lacus tempor, fringilla lectus nec, ullamcorper justo. Duis id porttitor massa, vel facilisis ligula. Vestibulum vitae pretium sem. Curabitur diam diam, finibus quis efficitur ut, sodales eget mi. Vestibulum sed egestas lectus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae",
+  loremIpsum,
   Buffer.from([...Array(256).keys()]),
 ]
 
@@ -95,4 +97,27 @@ test("errors on circular", () => {
   const circular: any = {}
   circular.circular = circular
   expect(() => [...serialize(circular)]).toThrowErrorMatchingSnapshot()
+})
+
+test("hash equality", () => {
+  const _hw = { hello: "world", loremIpsum }
+  const hw0 = { ..._hw }
+  const hw1 = { ..._hw }
+  const hw2 = { ..._hw }
+  const hashMap = new Map()
+  serialize.hash(hw2, hashMap)
+  expect(hashMap).toMatchSnapshot()
+  const hws = [hw0, hw1, hw2]
+  const objs = hws.flatMap(a => hws.map(b => [a, b]))
+  const hashes = objs.flatMap(obj => {
+    const hashMap2 = new Map()
+    serialize.hash(hw2, hashMap2)
+    return [
+      serialize.hash(obj, hashMap),
+      serialize.hash(obj, hashMap2),
+    ]
+  })
+  expect(hashes[0]).toMatchSnapshot()
+  expect(hashMap).toMatchSnapshot()
+  expect(hashes).toEqual(hashes.slice().fill(hashes[0]))
 })
