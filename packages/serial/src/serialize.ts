@@ -48,8 +48,9 @@ function* _serialize(
   let totalPosition = 0
   let rootHash: string | undefined
   const valueStack = new Stack()
-  valueStack.push(rootValue)
   const hasherStack = new Stack<HasherStackElement>()
+
+  valueStack.push(rootValue)
   for(const value of valueStack) {
     const start = totalPosition
 
@@ -195,15 +196,14 @@ function* _serialize(
       pushHash(hash)
       return true
     }
+    return false
   }
 
   function* writeValue(value: unknown, hasher?: Hasher){
     if(typeof value === "object" || typeof value === "function")
       if(Array.isArray(value)) {
         yield* writeKind(Kind.array, hasher)
-        valueStack.push(endMarker)
-        for(let i = value.length - 1; i >= 0; i--)
-          valueStack.push(value[i])
+        valueStack.push(...value, endMarker)
       }
       else if(value instanceof Buffer) {
         yield* writeKind(Kind.buffer, hasher)
@@ -217,7 +217,7 @@ function* _serialize(
         valueStack.push(endMarker)
         const keys = Object.keys(value)
         for(let i = keys.length - 1; i >= 0; i--)
-          valueStack.push(value[keys[i] as never], keys[i])
+          valueStack.push(keys[i], value[keys[i] as never])
       }
     else if(typeof value === "string") {
       yield* writeKind(Kind.string, hasher),
