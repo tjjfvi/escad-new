@@ -132,9 +132,9 @@ rules:
     - ignoreChainWithDepth: 4
   no-lonely-if:
     - warn
-  no-multiple-empty-lines:
-    - warn
-    - max: 1
+  # no-multiple-empty-lines:
+  #   - warn
+  #   - max: 1
   no-trailing-spaces:
     - warn
   no-unneeded-ternary:
