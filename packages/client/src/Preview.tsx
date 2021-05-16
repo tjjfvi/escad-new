@@ -9,6 +9,7 @@ import { Viewer } from "./Viewer"
 import { ClientState } from "./ClientState"
 import { Loading } from "./Loading"
 import { usePromise } from "./usePromise"
+import { Stats } from "./Stats"
 
 export const Preview = observer(() => {
   const state = useContext(ClientState.Context)
@@ -44,7 +45,11 @@ export const Preview = observer(() => {
 
   if(!viewer)
     return <div className="Preview none">
+      <div className="menubar">
+        <Export/>
+      </div>
       <span className="header">No viewers found for these products.</span>
+      <Stats/>
     </div>
 
   state.viewerStatus("converting")
@@ -61,5 +66,6 @@ export const Preview = observer(() => {
       </div>
       <Export/>
     </div>
+    <Stats/>
   </div>
 })
