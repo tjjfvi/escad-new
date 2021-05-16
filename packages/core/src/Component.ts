@@ -15,6 +15,7 @@ export interface Component<I extends any[], O extends Thing> {
   readonly hierarchy?: HierarchyProp,
   readonly overrideHierarchy?: boolean,
   readonly showOutput?: boolean,
+  readonly info: Record<string, any>,
   (...args: I): StripRealm<O>,
 }
 
@@ -22,6 +23,7 @@ export interface ComponentOpts {
   readonly hierarchy?: HierarchyProp,
   readonly overrideHierarchy?: boolean,
   readonly showOutput?: boolean,
+  readonly info?: Record<string, any>,
 }
 
 export const Component = {
@@ -29,7 +31,7 @@ export const Component = {
   create: <I extends any[], O extends Thing>(
     name: string,
     func: (...args: I) => O,
-    { hierarchy, overrideHierarchy = true, showOutput = true }: ComponentOpts = {},
+    { hierarchy, overrideHierarchy = true, showOutput = true, info = {} }: ComponentOpts = {},
   ): Component<I, O> => {
     const that = Object.assign(
       new ExtensibleFunction(
@@ -46,6 +48,7 @@ export const Component = {
         overrideHierarchy,
         hierarchy,
         showOutput,
+        info,
       },
     ) as Component<I, O>
     return that
