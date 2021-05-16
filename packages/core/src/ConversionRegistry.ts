@@ -49,7 +49,7 @@ export class ConversionRegistry {
     return !!(await this.compose(a, b))
   }
 
-  private async compose(fromType: ProductType, toType: ProductType): Promise<ConversionPath | null>{
+  async compose(fromType: ProductType, toType: ProductType): Promise<ConversionPath | null>{
     const stored = await this.artifactManager.lookupRef(
       [ConversionRegistry.artifactStoreId, toType, fromType],
       this.excludeStores,
@@ -259,7 +259,7 @@ export class ConversionRegistry {
     return path.reduce((a, b) => a + b.weight, 0)
   }
 
-  private async executeConversionPath(product: Product, conversions: ConversionPath){
+  async executeConversionPath(product: Product, conversions: ConversionPath){
     if(!conversions.length) return product
 
     const toType = conversions[conversions.length - 1].toType

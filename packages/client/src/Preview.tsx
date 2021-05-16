@@ -29,12 +29,17 @@ export const Preview = observer(() => {
     state.viewerStatus("displayed")
     return <div className="Preview none">
       <span className="header">No products to display.</span>
+      <Stats/>
     </div>
   }
 
   if(!viewers)
     return <div className="Preview loading">
+      <div className="menubar">
+        <Export/>
+      </div>
       <Loading/>
+      <Stats/>
     </div>
 
   const selectedViewer = viewerObs()

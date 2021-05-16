@@ -8,6 +8,7 @@ export * from "./Viewer3d"
 export * from "./axes"
 export * from "./colors"
 export * from "./createScene"
+export * from "./builtinsStats"
 export * from "./meshViewer3d"
 export * from "./orientCube"
 

@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@escad/core": "^0.0.0",
     "@escad/client": "^0.0.0",
     "@escad/builtins": "^0.0.0",
     "react": "^17.0.1",
