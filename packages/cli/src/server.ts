@@ -1,6 +1,7 @@
 
 import express from "express"
 import expressWs from "express-ws"
+import compression from "compression"
 import {
   createServerBundlerMessenger,
   createServerClientMessenger,
@@ -28,9 +29,17 @@ export const createServer = async ({ artifactsDir, port, ip = "::", loadFile, lo
   const staticDir = path.join(__dirname, "../static/")
   const bundleDir = path.join(artifactsDir, "static/")
 
+  app.use(compression())
   app.use(express.static(staticDir))
   app.use(express.static(bundleDir))
-  app.use("/artifacts", express.static(artifactsDir + "/"))
+  app.use(
+    "/artifacts",
+    express.static(
+      artifactsDir + "/",
+      {
+        setHeaders: res => res.setHeader("Content-Type", "text/json"),
+      }),
+  )
 
   const baseBundleOptions: BundleOptions = {
     outDir: bundleDir,
