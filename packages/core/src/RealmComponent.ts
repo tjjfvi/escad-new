@@ -23,6 +23,7 @@ export const RealmComponent = {
           func: component.func,
           overrideHierarchy: component.overrideHierarchy,
           hierarchy: component.hierarchy,
+          info: component.info,
         },
       ) as RealmComponent<I, O, C>
       return that
@@ -43,4 +44,3 @@ export interface RealmGenericComponent<
     U4 extends T[4],
   >(...args: Hkt.Output<I, _GCU<T, U0, U1, U2, U3, U4>>): RealmThing<Hkt.Output<O, _GCU<T, U0, U1, U2, U3, U4>>, C>,
 }
-
