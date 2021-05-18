@@ -159,13 +159,19 @@ export class ClientState implements ArtifactStore {
   logs = observable<Promise<Log>[]>([])
   sendParams = false
 
-  productHashes = computed<readonly Hash<Product>[]>(() => {
+  resolvedSelection = computed(() => {
     const selection = this.selection()
-    if(!selection) return this.sentProductHashes()
+    if(!selection) return null
     const hierarchy = this.hierarchy()
-    if(!hierarchy) return []
-    return [...resolveHierarchySelection(selection, hierarchy)]
+    if(!hierarchy) return null
+    return resolveHierarchySelection(selection, hierarchy)
   })
+
+  productHashes = computed<readonly Hash<Product>[]>(() =>
+    this.selection()
+      ? [...this.resolvedSelection()?.entries() ?? []].filter(([, v]) => v === true).map(([k]) => k)
+      : this.sentProductHashes(),
+  )
 
   clientServerMessenger: ClientServerMessenger
 

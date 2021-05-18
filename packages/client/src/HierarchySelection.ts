@@ -9,15 +9,15 @@ export interface HierarchySelectionPart {
 export type HierarchySelection = HierarchySelectionPart[]
 
 export function resolveHierarchySelection(hierarchySelection: HierarchySelection, hierarchy: Hierarchy){
-  const selectedProducts = new Set<Hash<Product>>()
+  const selectedProducts = new Map<Hash<Product>, boolean>()
   for(const selectionPart of hierarchySelection) {
     const subHierarchy = getHierarchyPath(selectionPart.path, hierarchy)
     if(!subHierarchy?.linkedProducts) continue
     for(const productHash of subHierarchy.linkedProducts)
       if(selectionPart.type === "include")
-        selectedProducts.add(productHash)
+        selectedProducts.set(productHash, true)
       else if(selectionPart.type === "exclude")
-        selectedProducts.delete(productHash)
+        selectedProducts.set(productHash, false)
       else
         assertNever(selectionPart.type)
   }

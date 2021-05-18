@@ -60,6 +60,8 @@ rules:
     - off
   prefer-const:
     - off
+  no-inner-declarations:
+    - off
   indent:
     - warn
     - 2

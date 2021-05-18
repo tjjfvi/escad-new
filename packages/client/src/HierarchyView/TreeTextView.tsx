@@ -3,6 +3,7 @@ import { assertNever, Hash } from "@escad/core"
 import React, { useContext } from "react"
 import { observer } from "rhobo"
 import { ClientState } from "../ClientState"
+import { getHierarchyPath } from "../HierarchyPath"
 import { NestableSpan } from "./NestableSpan"
 import { TreeText, TreeTextRange } from "./TreeText"
 
@@ -82,7 +83,7 @@ const TreeTextPartView = observer(({ range, children, selectable }: TreeTextPart
     if(!selectable)
       return <>{children}</>
     const { path } = range
-    const selectionClass = findLast(state.selection() ?? [], x => Hash.equal(x.path, path))?.type ?? ""
+    const selectionClass = getSelectionClass() ?? ""
     return <NestableSpan
       className={"selectable " + selectionClass}
       onClick={event => {
@@ -102,6 +103,21 @@ const TreeTextPartView = observer(({ range, children, selectable }: TreeTextPart
       }}
       children={children}
     />
+
+    function getSelectionClass(){
+      const hierarchy = state.hierarchy()
+      if(!hierarchy) return
+      const linkedProducts = getHierarchyPath(path, hierarchy)?.linkedProducts
+      if(!linkedProducts) return
+      const resolvedSelection = state.resolvedSelection()
+      if(!resolvedSelection) return
+      const selectionStates = linkedProducts.map(x => resolvedSelection.get(x))
+      const directly = findLast(state.selection() ?? [], x => Hash.equal(x.path, path))?.type ?? null
+      const someNull = selectionStates.some(x => x == null)
+      const included = selectionStates.some(x => x === true)
+      const excluded = selectionStates.some(x => x === false)
+      return `directly-${directly} someNull-${someNull} included-${included} excluded-${excluded}`
+    }
   }
   assertNever(range)
 })
