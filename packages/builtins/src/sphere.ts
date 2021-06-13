@@ -16,7 +16,7 @@ import { Vector3 } from "./Vector3"
 
 const tau = Math.PI * 2
 
-const sphereId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Sphere", "0")
+const sphereId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Sphere")
 
 export interface Sphere extends LeafProduct {
   readonly type: typeof sphereId,
@@ -88,7 +88,7 @@ conversionRegistry.register({
     )
   },
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "SphereMesh", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "SphereMesh"),
 })
 
 type SphereArgs = number | {

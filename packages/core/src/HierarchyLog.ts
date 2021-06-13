@@ -4,7 +4,7 @@ import { Hierarchy } from "./Hierarchy"
 import { Id } from "./Id"
 import { Log, LogLevel } from "./Log"
 
-const hierarchyLogId = Id.create(__filename, "@escad/core", "Log", "HierarchyLog", "0")
+const hierarchyLogId = Id.create(__filename, "@escad/core", "Log", "HierarchyLog")
 
 export interface HierarchyLog extends Log {
   type: typeof hierarchyLogId,

@@ -10,7 +10,7 @@ import path from "path"
 import { childProcessConnection, logConnection, serializeConnection } from "@escad/messages"
 import { fork } from "child_process"
 import watch from "node-watch"
-import { BundleOptions } from "../../client/node_modules/@escad/protocol/src"
+import { BundleOptions, ServerRendererShape } from "@escad/protocol"
 import { createServerEmitter } from "@escad/server"
 
 export interface ServerOptions {
@@ -39,15 +39,15 @@ export const createServer = async ({ artifactsDir, port, ip = "::", loadFile, lo
     watch: dev,
   }
 
-  const createRendererMessenger = async () => {
+  const createRendererMessenger = async (lookupRaw: ServerRendererShape["lookupRaw"]) => {
     const child = fork(require.resolve("./renderer"), {
       env: { ...process.env, ARTIFACTS_DIR: artifactsDir, LOAD_FILE: loadFile },
     })
     console.log(`New renderer process: ${child.pid}`)
-    return createServerRendererMessenger(childProcessConnection(child))
+    return createServerRendererMessenger(lookupRaw, serializeConnection(childProcessConnection(child)))
   }
 
-  const loadInfo = await (await createRendererMessenger()).loadFile()
+  const loadInfo = await (await createRendererMessenger(async () => null)).loadFile()
 
   const bundlerProcess = fork(require.resolve("./bundler"), {
     env: { ...process.env, DEV_MODE: dev + "" },

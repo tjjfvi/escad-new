@@ -16,7 +16,7 @@ import {
 } from "@escad/core"
 import { Bsp, ClipOptions } from "./Bsp"
 
-const unionId = Id.create(__filename, "@escad/builtins", "Marker", "Union", "0")
+const unionId = Id.create(__filename, "@escad/builtins", "Marker", "Union")
 export type Union<T extends Product> = MarkedProduct<typeof unionId, T>
 export const Union = MarkedProduct.for(unionId)
 
@@ -40,7 +40,7 @@ conversionRegistry.register({
       return Bsp.build(a, Bsp.allFaces(b)) ?? Bsp.null()
     }),
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "Union", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "Union"),
 })
 
 export const union: ConvertibleOperation<Bsp, Bsp> =

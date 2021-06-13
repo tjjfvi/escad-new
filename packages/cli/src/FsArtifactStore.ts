@@ -1,60 +1,57 @@
 
-import { Hash, Id, ArtifactStore } from "@escad/core"
+import { Hash, Id, ArtifactStore, WrappedValue, $wrappedValue } from "@escad/core"
 import { join, dirname } from "path"
 import fs from "fs"
 import { promisify } from "util"
-import { v4 as uuidv4 } from "uuid"
+import stream, { Readable } from "stream"
 
-const writeFile = promisify(fs.writeFile)
 const symlink = promisify(fs.symlink)
-const rename = promisify(fs.rename)
-const readFile = promisify(fs.readFile)
 const mkdir = promisify(fs.mkdir)
+const pipeline = promisify(stream.pipeline)
 
 export class FsArtifactStore implements ArtifactStore {
 
   constructor(public rootDir: string){}
 
-  async storeRaw(hash: Hash<unknown>, buffer: Buffer){
+  async storeRaw(hash: Hash<unknown>, value: WrappedValue){
     const path = await this.getPathRaw(hash)
-    await writeFile(path, buffer, { flag: "wx" }).catch(error => void error)
+    const writeStream = fs.createWriteStream(path, { flags: "wx" })
+    pipeline(
+      Readable.from($wrappedValue.serialize(value)),
+      writeStream,
+    ).catch(() => null)
   }
 
   async storeRef(loc: readonly unknown[], hash: Hash<unknown>){
     const fromPath = await this.getPathRef(loc)
     const toPath = await this.getPathRaw(hash)
-    const tmpPath = await this.getPathTmp()
-    await symlink(toPath, tmpPath)
-    await rename(tmpPath, fromPath)
+    await symlink(toPath, fromPath).catch(() => null)
   }
 
   async lookupRaw(hash: Hash<unknown>){
     const path = await this.getPathRaw(hash)
-    return await readFile(path).catch(() => null)
+    return await $wrappedValue.deserializeAsync(fs.createReadStream(path)).catch(() => null)
   }
 
   async lookupRef(loc: readonly unknown[]){
     const path = await this.getPathRef(loc)
-    return await readFile(path).catch(() => null)
-  }
-
-  private async getPathTmp(){
-    const id = uuidv4()
-    const path = join(this.rootDir, id)
-    await mkdir(dirname(path), { recursive: true })
-    return path
+    return await $wrappedValue.deserializeAsync(fs.createReadStream(path)).catch(() => null)
   }
 
   private async getPathRaw(hash: Hash<unknown>){
     const path = join(this.rootDir, "raw", hash)
-    await mkdir(dirname(path), { recursive: true })
+    this.mkdirp(dirname(path))
     return path
   }
 
   private async getPathRef(loc: readonly unknown[]){
-    const path = join(this.rootDir, ...loc.map(x => Id.isId(x) ? x.full.replace(/\//g, "-") : Hash.create(x)))
+    const path = join(this.rootDir, ...loc.map(x => Id.isId(x) ? x.replace(/\//g, "-") : Hash.create(x)))
     await mkdir(dirname(path), { recursive: true })
     return path
+  }
+
+  private async mkdirp(path: string){
+    await mkdir(path, { recursive: true })
   }
 
 }

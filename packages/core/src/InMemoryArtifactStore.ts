@@ -1,16 +1,20 @@
 
-import { ArtifactStore, Hash, HashMap } from "@escad/core"
+import { ArtifactStore } from "./ArtifactStore"
+import { Hash } from "./Hash"
+import { HashMap } from "./HashMap"
+import { WrappedValue } from "./WrappedValue"
 
 export class InMemoryArtifactStore implements ArtifactStore {
 
-  readonly raw = new Map<Hash<unknown>, Buffer>()
+  readonly raw = new Map<Hash<unknown>, WrappedValue>()
   readonly ref = new HashMap<readonly unknown[], Hash<unknown>>()
 
-  async storeRaw(hash: Hash<unknown>, buffer: Buffer){
-    this.raw.set(hash, buffer)
+  async storeRaw(hash: Hash<unknown>, value: WrappedValue){
+    this.raw.set(hash, value)
   }
 
   async lookupRaw(hash: Hash<unknown>){
+    console.log(this.raw)
     return this.raw.get(hash) ?? null
   }
 

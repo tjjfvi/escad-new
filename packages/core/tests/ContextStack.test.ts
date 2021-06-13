@@ -1,7 +1,7 @@
 import { ContextStack, Id } from "../src"
 
-const idA = Id.create(__filename, "@escad/core", "Test", "ContextA", "0")
-const idB = Id.create(__filename, "@escad/core", "Test", "ContextB", "0")
+const idA = Id.create(__filename, "@escad/core", "Test", "ContextA")
+const idB = Id.create(__filename, "@escad/core", "Test", "ContextB")
 
 test("", () => {
   const stack = new ContextStack()

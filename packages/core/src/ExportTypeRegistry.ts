@@ -5,7 +5,7 @@ import { Id } from "./Id"
 import { ArtifactStore } from "./ArtifactStore"
 import { Product, ProductType } from "./Product"
 import { conversionRegistry, ConversionRegistry } from "./ConversionRegistry"
-import { IdMap } from "./IdMap"
+import { WrappedValue } from "./WrappedValue"
 
 export class ExportTypeRegistry {
 
@@ -13,14 +13,13 @@ export class ExportTypeRegistry {
     this.artifactManager.artifactStores.push(this.artifactStore)
   }
 
-  private registered = new IdMap<ExportType<any>>()
+  private registered = new Map<Id, ExportType<any>>()
 
-  static readonly artifactStoreId = Id.create(__filename, "@escad/core", "ArtifactStore", "ExportTypeRegistry", "0")
+  static readonly artifactStoreId = Id.create(__filename, "@escad/core", "ArtifactStore", "ExportTypeRegistry")
   readonly artifactStore: ArtifactStore = {
     lookupRef: async ([id, exportTypeId, products], artifactManager) => {
-      if(!Id.isId(id) || !Id.equal(id, ExportTypeRegistry.artifactStoreId)) return null
-      if(!Id.isId(exportTypeId)) return null
-      const exportType = this.registered.get(exportTypeId)
+      if(id !== ExportTypeRegistry.artifactStoreId) return null
+      const exportType = this.registered.get(exportTypeId as Id)
       if(!exportType) return null
       if(!(products instanceof Array) || !products.every(Product.isProduct)) return null
       const convertedProducts = await Promise.all(products.map(p =>
@@ -28,7 +27,7 @@ export class ExportTypeRegistry {
       ))
       const exported = await exportType.export(convertedProducts)
       await artifactManager.storeRef([id, exportTypeId, products], exported)
-      return exported
+      return WrappedValue.create(exported)
     },
   }
 

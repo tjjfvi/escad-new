@@ -6,24 +6,10 @@ exports[`ArrayProduct<ProductA> .create 1`] = `
 Object {
   "children": Array [
     Object {
-      "type": Object {
-        "full": "@escad/core/LeafProduct/ProductA/0",
-        "name": "ProductA",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "type": "@escad/core/LeafProduct/ProductA",
     },
     Object {
-      "type": Object {
-        "full": "@escad/core/LeafProduct/ProductA/0",
-        "name": "ProductA",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "type": "@escad/core/LeafProduct/ProductA",
     },
   ],
   "type": "ArrayProduct",
@@ -33,14 +19,7 @@ Object {
 exports[`ArrayProduct<ProductA> Product.getProductType 1`] = `
 Object {
   "elementType": Object {
-    "id": Object {
-      "full": "@escad/core/LeafProduct/ProductA/0",
-      "name": "ProductA",
-      "packageName": "@escad/core",
-      "scope": "LeafProduct",
-      "type": "Id",
-      "version": "0",
-    },
+    "id": "@escad/core/LeafProduct/ProductA",
     "type": "LeafProductType",
   },
   "type": "ArrayProductType",
@@ -51,14 +30,7 @@ exports[`Complex .create 1`] = `
 Object {
   "children": Array [
     Object {
-      "type": Object {
-        "full": "@escad/core/LeafProduct/ProductA/0",
-        "name": "ProductA",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "type": "@escad/core/LeafProduct/ProductA",
     },
     Object {
       "children": Array [],
@@ -67,24 +39,10 @@ Object {
     Object {
       "children": Array [
         Object {
-          "type": Object {
-            "full": "@escad/core/LeafProduct/ProductA/0",
-            "name": "ProductA",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "type": "@escad/core/LeafProduct/ProductA",
         },
         Object {
-          "type": Object {
-            "full": "@escad/core/LeafProduct/ProductA/0",
-            "name": "ProductA",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "type": "@escad/core/LeafProduct/ProductA",
         },
       ],
       "type": "ArrayProduct",
@@ -92,48 +50,20 @@ Object {
     Object {
       "children": Array [
         Object {
-          "type": Object {
-            "full": "@escad/core/LeafProduct/ProductA/0",
-            "name": "ProductA",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "type": "@escad/core/LeafProduct/ProductA",
         },
         Object {
-          "type": Object {
-            "full": "@escad/core/LeafProduct/ProductB/0",
-            "name": "ProductB",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "type": "@escad/core/LeafProduct/ProductB",
         },
         Object {
-          "type": Object {
-            "full": "@escad/core/LeafProduct/ProductC/0",
-            "name": "ProductC",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "type": "@escad/core/LeafProduct/ProductC",
         },
       ],
       "type": "TupleProduct",
     },
     Object {
       "product": Object {
-        "type": Object {
-          "full": "@escad/core/LeafProduct/ProductB/0",
-          "name": "ProductB",
-          "packageName": "@escad/core",
-          "scope": "LeafProduct",
-          "type": "Id",
-          "version": "0",
-        },
+        "type": "@escad/core/LeafProduct/ProductB",
       },
       "type": "UnknownProduct",
     },
@@ -146,14 +76,7 @@ exports[`Complex Product.getProductType 1`] = `
 Object {
   "elementTypes": Array [
     Object {
-      "id": Object {
-        "full": "@escad/core/LeafProduct/ProductA/0",
-        "name": "ProductA",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "id": "@escad/core/LeafProduct/ProductA",
       "type": "LeafProductType",
     },
     Object {
@@ -162,14 +85,7 @@ Object {
     },
     Object {
       "elementType": Object {
-        "id": Object {
-          "full": "@escad/core/LeafProduct/ProductA/0",
-          "name": "ProductA",
-          "packageName": "@escad/core",
-          "scope": "LeafProduct",
-          "type": "Id",
-          "version": "0",
-        },
+        "id": "@escad/core/LeafProduct/ProductA",
         "type": "LeafProductType",
       },
       "type": "ArrayProductType",
@@ -177,36 +93,15 @@ Object {
     Object {
       "elementTypes": Array [
         Object {
-          "id": Object {
-            "full": "@escad/core/LeafProduct/ProductA/0",
-            "name": "ProductA",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "id": "@escad/core/LeafProduct/ProductA",
           "type": "LeafProductType",
         },
         Object {
-          "id": Object {
-            "full": "@escad/core/LeafProduct/ProductB/0",
-            "name": "ProductB",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "id": "@escad/core/LeafProduct/ProductB",
           "type": "LeafProductType",
         },
         Object {
-          "id": Object {
-            "full": "@escad/core/LeafProduct/ProductC/0",
-            "name": "ProductC",
-            "packageName": "@escad/core",
-            "scope": "LeafProduct",
-            "type": "Id",
-            "version": "0",
-          },
+          "id": "@escad/core/LeafProduct/ProductC",
           "type": "LeafProductType",
         },
       ],
@@ -224,27 +119,13 @@ exports[`Product.getProductType Throw on invalid product 1`] = `"Invalid product
 
 exports[`ProductA .create 1`] = `
 Object {
-  "type": Object {
-    "full": "@escad/core/LeafProduct/ProductA/0",
-    "name": "ProductA",
-    "packageName": "@escad/core",
-    "scope": "LeafProduct",
-    "type": "Id",
-    "version": "0",
-  },
+  "type": "@escad/core/LeafProduct/ProductA",
 }
 `;
 
 exports[`ProductA Product.getProductType 1`] = `
 Object {
-  "id": Object {
-    "full": "@escad/core/LeafProduct/ProductA/0",
-    "name": "ProductA",
-    "packageName": "@escad/core",
-    "scope": "LeafProduct",
-    "type": "Id",
-    "version": "0",
-  },
+  "id": "@escad/core/LeafProduct/ProductA",
   "type": "LeafProductType",
 }
 `;
@@ -267,24 +148,10 @@ exports[`TupleProduct<[ProductA, ProductB]> .create 1`] = `
 Object {
   "children": Array [
     Object {
-      "type": Object {
-        "full": "@escad/core/LeafProduct/ProductA/0",
-        "name": "ProductA",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "type": "@escad/core/LeafProduct/ProductA",
     },
     Object {
-      "type": Object {
-        "full": "@escad/core/LeafProduct/ProductB/0",
-        "name": "ProductB",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "type": "@escad/core/LeafProduct/ProductB",
     },
   ],
   "type": "TupleProduct",
@@ -295,25 +162,11 @@ exports[`TupleProduct<[ProductA, ProductB]> Product.getProductType 1`] = `
 Object {
   "elementTypes": Array [
     Object {
-      "id": Object {
-        "full": "@escad/core/LeafProduct/ProductA/0",
-        "name": "ProductA",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "id": "@escad/core/LeafProduct/ProductA",
       "type": "LeafProductType",
     },
     Object {
-      "id": Object {
-        "full": "@escad/core/LeafProduct/ProductB/0",
-        "name": "ProductB",
-        "packageName": "@escad/core",
-        "scope": "LeafProduct",
-        "type": "Id",
-        "version": "0",
-      },
+      "id": "@escad/core/LeafProduct/ProductB",
       "type": "LeafProductType",
     },
   ],
@@ -324,14 +177,7 @@ Object {
 exports[`UnknownProduct .create 1`] = `
 Object {
   "product": Object {
-    "type": Object {
-      "full": "@escad/core/LeafProduct/ProductB/0",
-      "name": "ProductB",
-      "packageName": "@escad/core",
-      "scope": "LeafProduct",
-      "type": "Id",
-      "version": "0",
-    },
+    "type": "@escad/core/LeafProduct/ProductB",
   },
   "type": "UnknownProduct",
 }
@@ -345,14 +191,7 @@ Object {
 
 exports[`createLeafProductUtils .productType 1`] = `
 Object {
-  "id": Object {
-    "full": "@escad/core/LeafProduct/ProductA/0",
-    "name": "ProductA",
-    "packageName": "@escad/core",
-    "scope": "LeafProduct",
-    "type": "Id",
-    "version": "0",
-  },
+  "id": "@escad/core/LeafProduct/ProductA",
   "type": "LeafProductType",
 }
 `;

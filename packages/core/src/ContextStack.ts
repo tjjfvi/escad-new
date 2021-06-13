@@ -15,11 +15,11 @@ export class ContextStack {
   }
 
   get(id: Id): unknown{
-    return this.contextMap[id.full]
+    return this.contextMap[id]
   }
 
   set(id: Id, value: unknown){
-    this.contextMap[id.full] = value
+    this.contextMap[id] = value
   }
 
 }

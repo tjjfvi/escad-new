@@ -8,7 +8,7 @@ export interface ObjectParamArgs<O extends ObjectParamGeneric> {
   readonly children: O,
 }
 
-const objectParamId = Id.create(__filename, "@escad/core", "Parameter", "ObjectParam", "0")
+const objectParamId = Id.create(__filename, "@escad/core", "Parameter", "ObjectParam")
 
 export type ObjectParamValue<O extends ObjectParamGeneric> = {
   [K in keyof O]: O[K] extends Parameter<infer T> ? T : never;

@@ -16,7 +16,7 @@ import { Vector3 } from "./Vector3"
 
 const tau = Math.PI * 2
 
-const cylinderId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Cylinder", "0")
+const cylinderId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Cylinder")
 
 export interface Cylinder extends LeafProduct {
   readonly type: typeof cylinderId,
@@ -82,7 +82,7 @@ conversionRegistry.register({
     }))
   },
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "CylMesh", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "CylMesh"),
 })
 
 export interface CylArgs {

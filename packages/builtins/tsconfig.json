@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../serial/tsconfig.json"
+    },
+    {
       "path": "../core/tsconfig.json"
     },
   ]

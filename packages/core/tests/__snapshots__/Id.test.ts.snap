@@ -1,18 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Id.create @escad-core-0-test0 1`] = `
-Object {
-  "full": "@escad/core/Test/test0/0",
-  "name": "test0",
-  "packageName": "@escad/core",
-  "scope": "Test",
-  "type": "Id",
-  "version": "0",
-}
-`;
+exports[`Id.create @escad/core/Test/test0 1`] = `"@escad/core/Test/test0"`;
 
-exports[`Id.create Throws on duplicate 1`] = `"Duplicate ids created under @escad/core/Test/test0/0"`;
+exports[`Id.create Throws on duplicate 1`] = `"Duplicate ids created under @escad/core/Test/test0"`;
 
 exports[`Id.create Throws on incorrect package name 1`] = `"Id.create: packageName mismatch; @escad/core attempted to create an id under @escad/incorrect"`;
-
-exports[`Id.create Throws on incorrect package version 1`] = `"Id.create: version mismatch; @escad/core@0.0.0 attempted to create an id under vIncorrect"`;

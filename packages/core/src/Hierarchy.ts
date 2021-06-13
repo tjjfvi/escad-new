@@ -1,6 +1,5 @@
 
 import { Product } from "./Product"
-import { LeafProduct } from "./LeafProduct"
 import { Component } from "./Component"
 import { Element } from "./Element"
 import { Hash } from "./Hash"
@@ -52,15 +51,10 @@ export const Hierarchy = {
         return await value.hierarchy ?? Hierarchy.from(value.value)
       if(Component.isComponent(value) || Operation.isOperation(value))
         return await value.hierarchy ?? NameHierarchy.create({ name: value.name })
-      if(LeafProduct.isLeafProduct(value))
-        return NameHierarchy.create({
-          name: `<${value.type.full}>`,
-          linkedProducts: [Hash.create(await HashProduct.fromProduct(value))],
-        })
       if(Product.isProduct(value))
         return NameHierarchy.create({
           name: `<${value.type}>`,
-          linkedProducts: [Hash.create(await HashProduct.fromProduct(value))],
+          linkedProducts: [Hash.create(HashProduct.fromProduct(value))],
         })
     }
     if(value instanceof Array)

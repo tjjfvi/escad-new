@@ -16,12 +16,11 @@ export const HashProduct = {
     hash,
     productType,
   }),
-  fromProduct: async <T extends Product>(product: T, artifactManager = defaultArtifactManager) => {
-    const [hash, productType] = await Promise.all([
-      artifactManager.storeRaw(product),
-      artifactManager.storeRaw(Product.getProductType(product)),
-    ])
-    return HashProduct.create(hash, productType)
+  fromProduct: <T extends Product>(product: T, artifactManager = defaultArtifactManager) => {
+    const productType = Product.getProductType(product)
+    artifactManager.storeRaw(product),
+    artifactManager.storeRaw(productType)
+    return HashProduct.create(Hash.create(product), Hash.create(productType))
   },
   getHashProductType: <T extends HashProduct>(product: T): HashProductType<T> =>
     HashProductType.create(product.productType) as never,

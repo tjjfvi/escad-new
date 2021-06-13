@@ -21,7 +21,7 @@ export interface RenderInfo {
 export type RendererServerShape = {
   run(params?: unknown): Promise<RenderInfo>,
   loadFile(): Promise<LoadFileInfo>,
-  lookupRef(loc: readonly unknown[]): Promise<Hash<unknown>>,
+  lookupRef(loc: readonly Hash<unknown>[]): Promise<Hash<unknown>>,
 }
 
 export type ServerRendererEvents = {
@@ -30,7 +30,9 @@ export type ServerRendererEvents = {
   renderFinish: [],
 }
 
-export type ServerRendererShape = {}
+export type ServerRendererShape = {
+  lookupRaw(hash: Hash<unknown>): Promise<readonly Uint8Array[] | null>,
+}
 
 export type ServerRendererMessenger = Messenger<ServerRendererShape, RendererServerShape, ServerRendererEvents>
 export type RendererServerMessenger = Messenger<RendererServerShape, ServerRendererShape, ServerRendererEvents>

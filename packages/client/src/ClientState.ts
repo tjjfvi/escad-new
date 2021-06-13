@@ -9,6 +9,8 @@ import {
   Hierarchy,
   Product,
   Log,
+  $wrappedValue,
+  WrappedValue,
 } from "@escad/core"
 import { ObjectParam } from "@escad/core"
 import { createContext } from "react"
@@ -23,6 +25,9 @@ import { StatusSet } from "./Status"
 import { HierarchySelection, resolveHierarchySelection } from "./HierarchySelection"
 import { Loading } from "./Loading"
 import { mdi } from "./Icon"
+import crypto from "crypto"
+
+const lookupRawRetryTimer = 500
 
 const _ClientStateContext = createContext<ClientState>(null as never)
 
@@ -174,7 +179,17 @@ export class ClientState implements ArtifactStore {
     public artifactManager: ArtifactManager,
     public hashToUrl: (hash: Hash<unknown>) => string,
   ){
-    this.clientServerMessenger = createMessenger({ impl: {}, connection: logConnection(this.connection) })
+    const excludeStores = new Set([this])
+    this.clientServerMessenger = createMessenger({
+      impl: {
+        lookupRaw: async hash => {
+          const result = await this.artifactManager.lookupRawWrapped(hash, excludeStores)
+          if(!result) return null
+          return [...$wrappedValue.serialize(result)]
+        },
+      },
+      connection: logConnection(this.connection),
+    })
     this.artifactManager.artifactStores.unshift(this)
 
     this.productHashes.on("update", async () => {
@@ -258,23 +273,40 @@ export class ClientState implements ArtifactStore {
     this.hierarchy(hierarchyHash ? await this.artifactManager.lookupRaw(hierarchyHash) : null)
   }
 
-  async lookupRaw(hash: Hash<unknown>){
+  async lookupRaw(hash: Hash<unknown>): Promise<WrappedValue<unknown> | null>{
     return this.wrapRendering(async () => {
       console.log("lookupRaw", hash)
-      const response = await fetch(this.hashToUrl(hash))
-      return Buffer.from(await response.arrayBuffer())
+      const stream = fetchStream(this.hashToUrl(hash))
+      const hasher = crypto.createHash("sha256")
+      const wrappedStream = (async function*(){
+        for await (const part of stream) {
+          hasher.update(part)
+          yield part
+        }
+      })()
+      const result = $wrappedValue.deserializeAsync(wrappedStream)
+
+      return result.catch(async () => {
+        for await (const {} of wrappedStream); // Finish hashing the stream
+        if(hasher.digest("hex") === hash) return null
+        await new Promise(r => setTimeout(r, lookupRawRetryTimer))
+        return this.lookupRaw(hash) // Try again
+      })
     })
   }
 
   lookupRefHash(loc: readonly unknown[]): Promise<Hash<unknown>>{
-    return this.wrapRendering(() => this.clientServerMessenger.lookupRef(loc))
+    return this.wrapRendering(async () =>
+      this.clientServerMessenger.lookupRef(await Promise.all(loc.map(x =>
+        this.artifactManager.storeRaw(x),
+      ))),
+    )
   }
 
   async lookupRef(loc: readonly unknown[]){
     return this.wrapRendering(async () => {
       const hash = await this.lookupRefHash(loc)
-      const response = await fetch(this.hashToUrl(hash))
-      return Buffer.from(await response.arrayBuffer())
+      return this.lookupRaw(hash)
     })
   }
 
@@ -294,13 +326,13 @@ export class ClientState implements ArtifactStore {
 
 export class WebSocketClientState extends ClientState {
 
-  emit: (value: string) => void
+  emit: (value: Uint8Array) => void
   curWs?: WebSocket
   disconnectTimeout: any
   url: string
 
   constructor(url: string, artifactManager: ArtifactManager, hashToUrl: ClientState["hashToUrl"]){
-    const [a, b] = createConnectionPair<string, unknown>()
+    const [a, b] = createConnectionPair<Uint8Array, unknown>()
     b.onMsg(message => this.curWs?.send(message))
     const connection = serializeConnection(a)
     super(connection, artifactManager, hashToUrl)
@@ -322,11 +354,12 @@ export class WebSocketClientState extends ClientState {
       this.serverStatus("connected")
       this.connect()
     })
+    ws.binaryType = "arraybuffer"
 
     ws.addEventListener("close", () => this.disconnect(ws))
     ws.addEventListener("error", () => this.disconnect(ws))
-    ws.addEventListener("message", msg => {
-      this.emit(msg.data)
+    ws.addEventListener("message", async ({ data }) => {
+      this.emit(new Uint8Array(data))
     })
   }
 
@@ -339,4 +372,16 @@ export class WebSocketClientState extends ClientState {
     setTimeout(() => this.initWs(), 5000)
   }
 
+}
+
+async function* fetchStream(input: RequestInfo, init?: RequestInit){
+  const response = await fetch(input, init)
+  if(!response.ok) throw new Error(`${response.status}`)
+  if(!response.body) throw new Error("Missing body")
+  const reader = response.body.getReader()
+  while(true) {
+    const result = await reader.read()
+    if(result.value) yield result.value
+    if(result.done) return
+  }
 }

@@ -20,7 +20,7 @@ conversionRegistry.register({
   convert: async mesh =>
     Bsp.build(null, mesh.faces) ?? Bsp.null(),
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "MeshBsp", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "MeshBsp"),
 })
 
 conversionRegistry.register({
@@ -29,5 +29,5 @@ conversionRegistry.register({
   convert: async bsp =>
     Mesh.create(Bsp.allFaces(bsp)),
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "BspMesh", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "BspMesh"),
 })

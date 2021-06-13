@@ -1,10 +1,13 @@
 
 import { Vector3 } from "./Vector3"
 import { Face } from "./Face"
+import { createLeafProductUtils, Id, LeafProduct } from "@escad/core"
 
 const epsilon = 1e-5
 
-export interface Plane {
+const planeId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Plane")
+export interface Plane extends LeafProduct {
+  readonly type: typeof planeId,
   readonly normal: Vector3,
   readonly w: number,
 }
@@ -17,7 +20,9 @@ export interface SplitFaceArguments {
 }
 
 export const Plane = {
+  id: planeId,
   create: _Plane,
+  ...createLeafProductUtils<Plane, "Plane">(planeId, "Plane"),
   flip: (plane: Plane): Plane => Plane.create(Vector3.negate(plane.normal), -plane.w),
   splitFace(plane: Plane, face: Face, { front, back, coplanarFront, coplanarBack }: SplitFaceArguments){
     const Coplanar = 0
@@ -70,14 +75,15 @@ export const Plane = {
 }
 
 function _Plane(normal: Vector3, w: number): Plane
-function _Plane(points: Array<Vector3>, w?: number): Plane
-function _Plane(points: Array<Vector3> | Vector3, w?: number): Plane{
+function _Plane(points: readonly Vector3[], w?: number): Plane
+function _Plane(points: readonly Vector3[] | Vector3, w?: number): Plane{
   if(!(points instanceof Array))
     return {
+      type: planeId,
       normal: points,
       w: w ?? 0,
     }
   let [a, b, c] = points
-  const normal =  Vector3.unit(Vector3.cross(Vector3.subtract(b, a), Vector3.subtract(c, a)))
-  return { normal, w: Vector3.dot(normal, a) }
+  const normal = Vector3.unit(Vector3.cross(Vector3.subtract(b, a), Vector3.subtract(c, a)))
+  return { type: planeId, normal, w: Vector3.dot(normal, a) }
 }

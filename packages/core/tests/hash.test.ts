@@ -14,7 +14,6 @@ test("Hash.equal", () => {
   const obj = {}
   expect(Hash.equal(obj, obj)).toBe(true)
   expect(Hash.equal(null, null)).toBe(true)
-  expect(Hash.equal({ a: undefined }, {})).toBe(true)
   expect(Hash.equal(0, 0)).toBe(true)
   expect(Hash.equal({}, {})).toBe(true)
   expect(Hash.equal("abc", "abc")).toBe(true)
@@ -27,6 +26,7 @@ test("Hash.equal", () => {
   expect(Hash.equal({ x: 1 }, {})).toBe(false)
   expect(Hash.equal({ x: 1 }, { x: 2 })).toBe(false)
   expect(Hash.equal({ x: 1 }, null)).toBe(false)
+  expect(Hash.equal({ a: undefined }, {})).toBe(false)
   expect(Hash.equal(undefined, null)).toBe(false)
 })
 

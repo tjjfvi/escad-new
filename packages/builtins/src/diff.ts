@@ -16,7 +16,7 @@ import {
 import { Bsp, ClipOptions } from "./Bsp"
 import { Union } from "./union"
 
-const diffId = Id.create(__filename, "@escad/builtins", "Marker", "Diff", "0")
+const diffId = Id.create(__filename, "@escad/builtins", "Marker", "Diff")
 export type Diff<T extends Product> = MarkedProduct<typeof diffId, T>
 export const Diff = MarkedProduct.for(diffId)
 
@@ -40,7 +40,7 @@ conversionRegistry.register({
     return Bsp.build(a, Bsp.allFaces(b)) ?? Bsp.null()
   },
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "Diff", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "Diff"),
 })
 
 export const diff: ConvertibleOperation<Bsp, Bsp> =

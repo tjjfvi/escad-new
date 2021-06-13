@@ -4,11 +4,11 @@ import { createBlob } from "../utils/createBlob"
 import { createServerRendererMessenger } from "@escad/server"
 import fs from "fs"
 import { brandConnection, createMessenger, workerConnection } from "@escad/messages"
-import { ServerRendererMessenger } from "@escad/protocol"
+import { ServerRendererMessenger, ServerRendererShape } from "@escad/protocol"
 import RendererBundlerWorker from "worker-loader?filename=bundler.worker.js!../workers/bundler.js"
 import type { RendererBundlerMessengerShape } from "../workers/rendererBundler"
 import { attachWorkerFs } from "../utils/attachWorkerFs"
-import { InMemoryArtifactStore } from "../utils/InMemoryArtifactStore"
+import { InMemoryArtifactStore } from "@escad/core"
 import { ArtifactStore } from "@escad/core"
 
 export const artifactStore = new InMemoryArtifactStore()
@@ -21,7 +21,9 @@ const rendererBundlerMessenger = createMessenger<{}, RendererBundlerMessengerSha
 })
 
 let firstTime = true
-export const createRendererWorker = async (): Promise<ServerRendererMessenger> => {
+export const createRendererWorker = async (
+  lookupRaw: ServerRendererShape["lookupRaw"],
+): Promise<ServerRendererMessenger> => {
   if(firstTime) {
     firstTime = false
     return new Promise(() => {}) // Can't bundle atm, never resolves
@@ -39,6 +41,7 @@ export const createRendererWorker = async (): Promise<ServerRendererMessenger> =
       connection: brandConnection(workerConnection(worker), "artifacts"),
     })
     return createServerRendererMessenger(
+      lookupRaw,
       {
         ...brandConnection(workerConnection(worker), "renderer"),
         destroy: () => artifactMessenger.destroy(),

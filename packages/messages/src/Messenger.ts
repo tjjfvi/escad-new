@@ -95,7 +95,6 @@ export const createMessenger = (
             })()
             return
           }
-          console.log({ event, args })
           eventMap[event]?.forEach(cb => cb(...args))
           connection.send(["event", -1, event, ...args])
         },

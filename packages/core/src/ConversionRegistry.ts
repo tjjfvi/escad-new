@@ -11,7 +11,7 @@ import { ArrayProduct, ArrayProductType } from "./ArrayProduct"
 import { UnknownProduct, UnknownProductType } from "./UnknownProduct"
 import { MarkedProduct, MarkedProductType } from "./MarkedProduct"
 import { HashProduct, HashProductType } from "./HashProduct"
-import { IdMap } from "./IdMap"
+import { WrappedValue } from "./WrappedValue"
 
 type ConversionPath = ConversionImpl<any, any>[]
 
@@ -21,23 +21,24 @@ export class ConversionRegistry {
     this.artifactManager.artifactStores.push(this.artifactStore)
   }
 
-  static readonly artifactStoreId = Id.create(__filename, "@escad/core", "ArtifactStore", "ConversionRegistry", "0")
+  static readonly artifactStoreId = Id.create(__filename, "@escad/core", "ArtifactStore", "ConversionRegistry")
   readonly artifactStore: ArtifactStore = {
     lookupRef: async ([id, toType, from]) => {
-      if(!Id.isId(id) || !Id.equal(id, ConversionRegistry.artifactStoreId)) return null
+      if(id !== ConversionRegistry.artifactStoreId) return null
       if(!ProductType.isProductType(toType)) return null
       if(Product.isProduct(from))
-        return this.convertProduct(toType, from)
+        return WrappedValue.create(this.convertProduct(toType, from))
       if(ProductType.isProductType(from))
-        return this.compose(from, toType)
+        return WrappedValue.create(this.compose(from, toType))
+      return null
     },
   }
 
   readonly excludeStores: ReadonlySet<ArtifactStore> = new Set([this.artifactStore])
 
-  private readonly registered = new IdMap<ConversionImpl<any, any>>()
+  private readonly registered = new Map<Id, ConversionImpl<any, any>>()
 
-  register<F extends Product, T extends Product>(conversion: ConversionImplish<F, T> & { id: object }): void{
+  register<F extends Product, T extends Product>(conversion: ConversionImplish<F, T>): void{
     this.registered.set(conversion.id, {
       ...conversion,
       fromType: ProductType.fromProductTypeish(conversion.fromType),
@@ -50,51 +51,49 @@ export class ConversionRegistry {
   }
 
   private async compose(fromType: ProductType, toType: ProductType): Promise<ConversionPath | null>{
-    const stored = await this.artifactManager.lookupRef(
+    const result = await this.artifactManager.computeRef(
       [ConversionRegistry.artifactStoreId, toType, fromType],
+      async () => {
+        let bestPath = null as ConversionPath | null
+        const promises = []
+
+        const tasks = [{
+          type: fromType,
+          prior: [] as ConversionPath,
+        }]
+
+        while(tasks.length) {
+          const { type, prior } = tasks.pop()!
+          if(prior.some(c => Hash.equal(c.fromType, type)))
+            continue
+
+          if(this.maybeImplicitlyConvertibleTo(type, toType))
+            promises.push(
+              this.finishPath(fromType, prior, toType).then(path => {
+                if(!bestPath || path && this.weight(path) <= this.weight(bestPath))
+                  bestPath = path
+              }),
+            )
+
+          else
+            for(const conversion of this.registered.values())
+              if(this.maybeImplicitlyConvertibleTo(type, conversion.fromType))
+                tasks.push({
+                  type: conversion.toType,
+                  prior: [...prior, conversion],
+                })
+        }
+
+        await Promise.all(promises)
+
+        return bestPath
+      },
       this.excludeStores,
     )
 
-    if(stored)
-      return this.rehydrateConversionPath(stored as ConversionPath)
+    if(!result) return null
 
-    let bestPath: ConversionPath | null = null
-    const promises = []
-
-    const tasks = [{
-      type: fromType,
-      prior: [] as ConversionPath,
-    }]
-
-    while(tasks.length) {
-      const { type, prior } = tasks.pop()!
-      if(prior.some(c => Hash.equal(c.fromType, type)))
-        continue
-
-      if(this.maybeImplicitlyConvertibleTo(type, toType))
-        promises.push(
-          this.finishPath(fromType, prior, toType).then(path => {
-            if(!bestPath || path && this.weight(path) <= this.weight(bestPath))
-              bestPath = path
-          }),
-        )
-
-      else
-        for(const conversion of this.registered.values())
-          if(this.maybeImplicitlyConvertibleTo(type, conversion.fromType))
-            tasks.push({
-              type: conversion.toType,
-              prior: [...prior, conversion],
-            })
-    }
-
-    await this.artifactManager.storeRef(
-      [ConversionRegistry.artifactStoreId, toType, fromType],
-      Promise.all(promises).then(() => bestPath),
-      this.excludeStores,
-    )
-
-    return bestPath
+    return this.rehydrateConversionPath(result)
   }
 
   private async finishPath(initialFromType: ProductType, path: ConversionPath | null, finalToType: ProductType){
@@ -111,9 +110,7 @@ export class ConversionRegistry {
       const part = await this.finishPathSegment(fromType, toType)
       if(!part) return null
 
-      const id = Hash.create([part.fromType, part.toType])
-
-      path.splice(i, 0, { ...part, id })
+      path.splice(i, 0, part)
       i--
     }
 
@@ -129,7 +126,7 @@ export class ConversionRegistry {
       || true
         && MarkedProductType.isMarkedProductType(fromType)
         && MarkedProductType.isMarkedProductType(toType)
-        && Id.equal(fromType.marker, toType.marker)
+        && fromType.marker === toType.marker
       || true
         && TupleProductType.isTupleProductType(fromType)
         && ArrayProductType.isArrayProductType(toType)
@@ -171,7 +168,7 @@ export class ConversionRegistry {
         fromType: resolvedToType,
         toType,
         convert: async (product: Product) =>
-          await HashProduct.fromProduct(
+          HashProduct.fromProduct(
             await this.executeConversionPath(product, subPath),
             this.artifactManager,
           ),
@@ -191,7 +188,7 @@ export class ConversionRegistry {
     if(
       MarkedProductType.isMarkedProductType(fromType)
       && MarkedProductType.isMarkedProductType(toType)
-      && Id.equal(fromType.marker, toType.marker)
+      && fromType.marker === toType.marker
     ) {
       const subPath = await this.compose(fromType.child, toType.child)
       return subPath && {
@@ -262,37 +259,20 @@ export class ConversionRegistry {
   private async executeConversionPath(product: Product, conversions: ConversionPath){
     if(!conversions.length) return product
 
-    const toType = conversions[conversions.length - 1].toType
-    const ref = [ConversionRegistry.artifactStoreId, toType, product]
-
-    const stored = await this.artifactManager.lookupRef(ref, this.excludeStores)
-
-    if(stored)
-      return stored as Product
-
-    const result = this._executeConversionPath(product, conversions)
-
-    await this.artifactManager.storeRef(ref, result, this.excludeStores)
-
-    return await result
-  }
-
-  private async _executeConversionPath(product: Product, conversions: ConversionPath){
-    for(const conversion of conversions) {
-      const { toType } = conversion
-      const ref = [ConversionRegistry.artifactStoreId, toType, product]
-      const stored = await this.artifactManager.lookupRef(ref, this.excludeStores)
-      if(stored) {
-        product = stored as Product
-        continue
-      }
-      const result = conversion.convert(product)
-      await this.artifactManager.storeRef(ref, result, this.excludeStores)
-      product = await result
-      continue
-    }
-
-    return product
+    return await this.artifactManager.computeRef(
+      [ConversionRegistry.artifactStoreId, conversions[conversions.length - 1].toType, product],
+      async () => {
+        let currentProduct = product
+        for(const conversion of conversions)
+          currentProduct = await artifactManager.computeRef(
+            [ConversionRegistry.artifactStoreId, conversion.toType, currentProduct],
+            async () => conversion.convert(currentProduct),
+            this.excludeStores,
+          )
+        return currentProduct
+      },
+      this.excludeStores,
+    )
   }
 
   async convertProduct<T extends Product, F extends ConvertibleTo<T>>(
@@ -315,6 +295,8 @@ export class ConversionRegistry {
 
   private rehydrateConversionMemo = new WeakMap<Omit<ConversionImpl<any, any>, "convert">, ConversionImpl<any, any>>()
   private rehydrateConversion(conversion: Omit<ConversionImpl<any, any>, "convert">): ConversionImpl<any, any>{
+    if("convert" in conversion && typeof conversion["convert"] === "function")
+      return conversion
     const existing = this.rehydrateConversionMemo.get(conversion)
     if(existing) return existing
     const rehydrated: ConversionImpl<any, any> = {
@@ -322,9 +304,9 @@ export class ConversionRegistry {
       // This function will get replaced when called
       convert: async (product: Product): Promise<Product> => {
         const { fromType, toType, id } = rehydrated
-        if(Id.isId(id)) {
+        if(id) {
           const registered = this.registered.get(id)
-          if(!registered) throw new Error(`Could not find conversion with id ${id.full}`)
+          if(!registered) throw new Error(`Could not find conversion with id ${id}`)
           Object.assign(rehydrated, registered)
         }
         else {

@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     {
+      "path": "serial"
+    },
+    {
       "path": "messages"
     },
     {

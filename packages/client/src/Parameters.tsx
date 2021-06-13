@@ -1,7 +1,7 @@
 import { IdView } from "./IdView"
 import { Observable, Writeable } from "rhobo"
 import React, { useContext, useEffect } from "react"
-import { IdMap, Parameter } from "@escad/core"
+import { Id, Parameter } from "@escad/core"
 import { ClientState } from "./ClientState"
 
 export interface ParameterRegistration<T, P extends Parameter<T>> {
@@ -10,11 +10,11 @@ export interface ParameterRegistration<T, P extends Parameter<T>> {
   component: (props: { parameter: P, value: Writeable<T> }) => JSX.Element,
 }
 
-const parameterRegistrations = new IdMap<ParameterRegistration<any, any>>()
+const parameterRegistrations = new Map<Id, ParameterRegistration<any, any>>()
 
 export const registerParameter = async <T, P extends Parameter<T>>(registration: ParameterRegistration<T, P>) => {
   if(parameterRegistrations.has(registration.id))
-    throw new Error(`Duplicate ParameterRegistration for id ${registration.id.full}`)
+    throw new Error(`Duplicate ParameterRegistration for id ${registration.id}`)
   parameterRegistrations.set(registration.id, registration)
 }
 

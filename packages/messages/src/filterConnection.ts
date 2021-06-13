@@ -7,7 +7,3 @@ export const filterConnection =
     onMsg: origCb => connection.onMsg(v => filter(v) && origCb(v)),
     destroy: connection.destroy,
   })
-
-/* istanbul ignore next: covered by types */
-filterConnection.string = <T>(connection: Connection<T, unknown>): Connection<T, string> =>
-  filterConnection(connection, (v): v is string & T => typeof v === "string")

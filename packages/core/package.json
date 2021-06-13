@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@escad/serial": "^0.0.0",
     "read-pkg-up": "^7.0.1",
     "uuid": "^8.3.2"
   },

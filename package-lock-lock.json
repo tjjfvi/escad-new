@@ -36,6 +36,7 @@
 				"flatted": "^3.1.1",
 				"fs-constants": "^1.0.0",
 				"fs-extra": "^9.1.0",
+				"ieee754": "^1.2.1",
 				"lz-string": "^1.4.4",
 				"monaco-editor": "^0.21.2",
 				"monaco-editor-webpack-plugin": "^2.1.0",
@@ -64,7 +65,7 @@
 				"@types/jest": "^26.0.20",
 				"@typescript-eslint/eslint-plugin": "^4.14.1",
 				"@typescript-eslint/parser": "^4.14.1",
-				"create-index-better": "^1.4.4",
+				"create-index-better": "^1.5.0",
 				"eslint": "^7.18.0",
 				"eslint-plugin-react": "^7.22.0",
 				"jest": "^26.6.3",
@@ -1114,7 +1115,6 @@
 				"jest-resolve": "^26.6.2",
 				"jest-util": "^26.6.2",
 				"jest-worker": "^26.6.2",
-				"node-notifier": "^8.0.0",
 				"slash": "^3.0.0",
 				"source-map": "^0.6.0",
 				"string-length": "^4.0.1",
@@ -1887,9 +1887,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -1974,9 +1971,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -2193,9 +2187,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -2412,9 +2403,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -2554,9 +2542,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -2619,9 +2604,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -2808,9 +2790,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -2863,9 +2842,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -3064,9 +3040,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -3427,9 +3400,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -3510,9 +3480,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -3636,9 +3603,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -3689,9 +3653,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -7606,10 +7567,11 @@
 			}
 		},
 		"node_modules/create-index-better": {
-			"version": "1.4.4",
-			"resolved": "https://registry.npmjs.org/create-index-better/-/create-index-better-1.4.4.tgz",
-			"integrity": "sha512-iKH+eoI2FQg9rFmyU1u+V0bkFnkR6SqeX0+Jiy29wpysjmC7EfracpUZzsVE0CqnxIVMYv/WfLDvK+InlzgAtA==",
+			"version": "1.5.0",
+			"resolved": "https://registry.npmjs.org/create-index-better/-/create-index-better-1.5.0.tgz",
+			"integrity": "sha512-BHDE9XH6KzbH4Ck9pyGexNf/hknzwDosJv6OFK1dDr8Dqtcd8R+LQ/nP1UNdscQqc/pVLx7yWoj7pZ2CH0w4YQ==",
 			"dev": true,
+			"license": "BSD-3-Clause",
 			"dependencies": {
 				"chalk": "^1.1.3",
 				"glob": "^7.1.1",
@@ -8464,8 +8426,7 @@
 				"esprima": "^4.0.1",
 				"estraverse": "^4.2.0",
 				"esutils": "^2.0.2",
-				"optionator": "^0.8.1",
-				"source-map": "~0.6.1"
+				"optionator": "^0.8.1"
 			},
 			"bin": {
 				"escodegen": "bin/escodegen.js",
@@ -9609,9 +9570,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -10952,7 +10910,6 @@
 				"minimist": "^1.2.5",
 				"neo-async": "^2.6.0",
 				"source-map": "^0.6.1",
-				"uglify-js": "^3.1.4",
 				"wordwrap": "^1.0.0"
 			},
 			"bin": {
@@ -12929,7 +12886,6 @@
 				"@types/node": "*",
 				"anymatch": "^3.0.3",
 				"fb-watchman": "^2.0.0",
-				"fsevents": "^2.1.2",
 				"graceful-fs": "^4.2.4",
 				"jest-regex-util": "^26.0.0",
 				"jest-serializer": "^26.6.2",
@@ -14519,7 +14475,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-6.1.0.tgz",
 			"integrity": "sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==",
 			"dependencies": {
-				"graceful-fs": "^4.1.6",
 				"universalify": "^2.0.0"
 			},
 			"optionalDependencies": {
@@ -15246,7 +15201,6 @@
 			"resolved": "https://registry.npmjs.org/minipass-fetch/-/minipass-fetch-1.3.3.tgz",
 			"integrity": "sha512-akCrLDWfbdAWkMLBxJEeWTdNsjML+dt5YgOI4gJ53vuO0vrmYQkUPxa6j6V65s9CcePIr2SSWqjT2EcrNseryQ==",
 			"dependencies": {
-				"encoding": "^0.1.12",
 				"minipass": "^3.1.0",
 				"minipass-sized": "^1.0.3",
 				"minizlib": "^2.0.0"
@@ -17448,9 +17402,6 @@
 			"resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-4.0.0.tgz",
 			"integrity": "sha1-h3Gq4HmbZAdrdmQPygWPnBDjPss=",
 			"dev": true,
-			"dependencies": {
-				"graceful-fs": "^4.1.6"
-			},
 			"optionalDependencies": {
 				"graceful-fs": "^4.1.6"
 			}
@@ -28369,9 +28320,9 @@
 			}
 		},
 		"create-index-better": {
-			"version": "1.4.4",
-			"resolved": "https://registry.npmjs.org/create-index-better/-/create-index-better-1.4.4.tgz",
-			"integrity": "sha512-iKH+eoI2FQg9rFmyU1u+V0bkFnkR6SqeX0+Jiy29wpysjmC7EfracpUZzsVE0CqnxIVMYv/WfLDvK+InlzgAtA==",
+			"version": "1.5.0",
+			"resolved": "https://registry.npmjs.org/create-index-better/-/create-index-better-1.5.0.tgz",
+			"integrity": "sha512-BHDE9XH6KzbH4Ck9pyGexNf/hknzwDosJv6OFK1dDr8Dqtcd8R+LQ/nP1UNdscQqc/pVLx7yWoj7pZ2CH0w4YQ==",
 			"dev": true,
 			"requires": {
 				"chalk": "^1.1.3",

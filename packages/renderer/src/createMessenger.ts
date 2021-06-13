@@ -9,6 +9,7 @@ import {
   ObjectParam,
   ProductType,
   Logger,
+  $wrappedValue,
 } from "@escad/core"
 import { RenderInfo, RendererServerMessenger, LoadFileInfo } from "@escad/protocol"
 import { Connection, createMessenger } from "@escad/messages"
@@ -29,6 +30,14 @@ export const createRendererServerMessenger = (
       lookupRef,
     },
     connection,
+  })
+
+  artifactManager.artifactStores.push({
+    lookupRaw: async hash => {
+      const result = await messenger.lookupRaw(hash)
+      if(!result) return null
+      return $wrappedValue.deserialize(result)
+    },
   })
 
   let lastEmitLogPromise : Promise<unknown> = Promise.resolve()
@@ -92,47 +101,51 @@ export const createRendererServerMessenger = (
         return { products: [], hierarchy: null }
       }
       const el = Element.create<Product>(result)
-      const products = await Promise.all((await Element.toArrayFlat(el)).map(async product =>
-        artifactManager.storeRaw(await HashProduct.fromProduct(product)),
-      ))
-      const hierarchy = await artifactManager.storeRaw(await Hierarchy.from(el))
+      const [products, hierarchy] = await Promise.all([
+        Element.toArrayFlat(el).then(products =>
+          Promise.all(products.map(async product =>
+            artifactManager.storeRaw(HashProduct.fromProduct(product)),
+          )),
+        ),
+        Hierarchy.from(el).then(hierarchy =>
+          artifactManager.storeRaw(hierarchy),
+        ),
+      ])
       return { products, hierarchy }
     }
   }
 
   async function loadFile(){
-    {
-      const fullExported = requireFile()
+    const fullExported = requireFile()
 
-      if(typeof fullExported !== "object" || !fullExported || !("default" in fullExported))
-        throw new Error("File has no default export")
+    if(typeof fullExported !== "object" || !fullExported || !("default" in fullExported))
+      throw new Error("File has no default export")
 
-      const exported = fullExported["default" as never] as unknown
+    const exported = fullExported["default" as never] as unknown
 
-      if(typeof exported !== "function" && !(exported instanceof RenderFunction))
-        throw new Error("Expected export type of function or RenderFunction")
+    if(typeof exported !== "function" && !(exported instanceof RenderFunction))
+      throw new Error("Expected export type of function or RenderFunction")
 
-      const [func, _paramDef] =
+    const [func, _paramDef] =
         exported instanceof RenderFunction
           ? [exported.func, exported.paramDef]
           : [exported, null]
-      const paramDef = ObjectParam.create(_paramDef ?? {})
+    const paramDef = ObjectParam.create(_paramDef ?? {})
 
-      const exportTypes = [...exportTypeRegistry.listRegistered()].map(x => ({
-        ...x,
-        export: undefined,
-        productType: ProductType.fromProductTypeish(x.productType),
-      }))
+    const exportTypes = [...exportTypeRegistry.listRegistered()].map(x => ({
+      ...x,
+      export: undefined,
+      productType: ProductType.fromProductTypeish(x.productType),
+    }))
 
-      const loadInfo: LoadFileInfo = {
-        paramDef,
-        clientPlugins: [...registeredPlugins],
-        exportTypes,
-        func,
-      }
-
-      return loadInfo
+    const loadInfo: LoadFileInfo = {
+      paramDef,
+      clientPlugins: [...registeredPlugins],
+      exportTypes,
+      func,
     }
+
+    return loadInfo
   }
 
 }

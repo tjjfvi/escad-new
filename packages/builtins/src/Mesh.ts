@@ -3,7 +3,7 @@ import { Face } from "./Face"
 import { Vector3 } from "./Vector3"
 import { createLeafProductUtils, Id, LeafProduct } from "@escad/core"
 
-const meshId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Mesh", "0")
+const meshId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Mesh")
 
 export interface Mesh extends LeafProduct {
   readonly type: typeof meshId,

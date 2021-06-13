@@ -3,7 +3,7 @@
 require("ts-node").register()
 
 import { artifactManager, logger } from "@escad/core"
-import { parentProcessConnection } from "@escad/messages"
+import { parentProcessConnection, serializeConnection } from "@escad/messages"
 import { createRendererServerMessenger } from "@escad/renderer"
 import { FsArtifactStore } from "./FsArtifactStore"
 
@@ -13,4 +13,4 @@ const loadFile = process.env.LOAD_FILE
 if(!loadFile) throw new Error("Renderer process was not passed environment variable LOAD_FILE")
 artifactManager.artifactStores.unshift(new FsArtifactStore(artifactsDir))
 
-createRendererServerMessenger(parentProcessConnection(), () => require(loadFile), logger)
+createRendererServerMessenger(serializeConnection(parentProcessConnection()), () => require(loadFile), logger)

@@ -14,7 +14,7 @@ import {
 } from "@escad/core"
 import { Mesh } from "./Mesh"
 
-const meldId = Id.create(__filename, "@escad/builtins", "Marker", "Meld", "0")
+const meldId = Id.create(__filename, "@escad/builtins", "Marker", "Meld")
 export type Meld<T extends Product> = MarkedProduct<typeof meldId, T>
 export const Meld = MarkedProduct.for(meldId)
 
@@ -34,7 +34,7 @@ conversionRegistry.register({
   convert: async ({ child: { children } }) =>
     Mesh.create(children.flatMap(x => x.faces)),
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "Meld", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "Meld"),
 })
 
 export const meld: ConvertibleOperation<Mesh, Mesh> = (

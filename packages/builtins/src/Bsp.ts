@@ -3,7 +3,7 @@ import { createLeafProductUtils, Id, LeafProduct, Stack } from "@escad/core"
 import { Face } from "./Face"
 import { Plane } from "./Plane"
 
-const bspId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Bsp", "0")
+const bspId = Id.create(__filename, "@escad/builtins", "LeafProduct", "Bsp")
 
 type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 type PartialBsp =

@@ -3,7 +3,7 @@ import { checkTypeProperty } from "./checkTypeProperty"
 import { Id } from "./Id"
 import { Log, LogLevel } from "./Log"
 
-const stringLogId = Id.create(__filename, "@escad/core", "Log", "StringLog", "0")
+const stringLogId = Id.create(__filename, "@escad/core", "Log", "StringLog")
 
 export interface StringLog extends Log {
   type: typeof stringLogId,

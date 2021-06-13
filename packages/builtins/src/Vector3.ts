@@ -1,12 +1,18 @@
+import { createLeafProductUtils, Id, LeafProduct } from "@escad/core"
 
-export interface Vector3 {
+const vector3Id = Id.create(__filename, "@escad/builtins", "LeafProduct", "Vector3")
+
+export interface Vector3 extends LeafProduct {
+  readonly type: typeof vector3Id,
   readonly x: number,
   readonly y: number,
   readonly z: number,
 }
 
 export const Vector3 = {
+  id: vector3Id,
   create: _createVector3,
+  ...createLeafProductUtils<Vector3, "Vector3">(vector3Id, "Vector3"),
 
   add: (a: Vector3, b: Vector3) =>
     Vector3.create(a.x + b.x, a.y + b.y, a.z + b.z),
@@ -55,12 +61,16 @@ export const Vector3 = {
 function _createVector3(x: number, y: number, z: number): Vector3
 function _createVector3(xyz: [number, number, number]): Vector3
 function _createVector3(xyz: { x: number, y: number, z: number }): Vector3
-function _createVector3(x: number | { x: number, y: number, z: number } | [number, number, number] = 0, y = 0, z = 0){
+function _createVector3(
+  x: number | { x: number, y: number, z: number } | [number, number, number] = 0,
+  y = 0,
+  z = 0,
+): Vector3{
   if(typeof x === "object")
     if(x instanceof Array)
       [x, y, z] = x
     else
       ({ x, y, z } = x)
 
-  return { x, y, z }
+  return { type: vector3Id, x, y, z }
 }

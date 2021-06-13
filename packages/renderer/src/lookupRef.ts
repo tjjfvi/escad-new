@@ -1,7 +1,10 @@
 
-import { Hash, artifactManager, Id, ConversionRegistry, ExportTypeRegistry, Product } from "@escad/core"
+import { Hash, artifactManager, ConversionRegistry, ExportTypeRegistry, Product } from "@escad/core"
 
-export async function lookupRef(loc: readonly unknown[]){
+export async function lookupRef(locHashes: readonly Hash<unknown>[]){
+  console.log(locHashes)
+  const loc = await Promise.all(locHashes.map(hash => artifactManager.lookupRaw(hash)))
+  console.log(loc)
   const type = getRefType(loc)
   const timerName = type ? `${type} ${Hash.create(loc).slice(0, 16)}...` : undefined
   if(type) console.time(timerName)
@@ -12,8 +15,8 @@ export async function lookupRef(loc: readonly unknown[]){
 }
 
 function getRefType(loc: readonly unknown[]): string | undefined{
-  if(Id.isId(loc[0]) && Id.equal(loc[0], ConversionRegistry.artifactStoreId))
-    return Product.isProduct(loc[1]) ? "Convert" : "Compose"
-  if(Id.isId(loc[0]) && Id.equal(loc[0], ExportTypeRegistry.artifactStoreId))
+  if(loc[0] === ConversionRegistry.artifactStoreId)
+    return Product.isProduct(loc[2]) ? "Convert" : "Compose"
+  if(loc[0] === ExportTypeRegistry.artifactStoreId)
     return "Export"
 }

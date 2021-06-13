@@ -1,0 +1,25 @@
+{
+  "name": "@escad/serial",
+  "version": "0.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "build-for-playground": "npm pack; tgz=`echo *.tgz`; mv $tgz ${tgz%-*}.tgz; mv *.tgz ../playground/static/packages",
+    "build": "npm run clean; tsc -b .",
+    "open-errors": "tsc | grep -p '^\\S' | sed -e 's/(.*//' | sort | uniq | xargs code"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ieee754": "^1.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.1.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

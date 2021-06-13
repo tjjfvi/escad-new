@@ -1,6 +1,7 @@
 
+import { Hash } from "@escad/core"
 import { Connection, createMessenger } from "@escad/messages"
-import { ServerBundlerMessenger, ServerClientMessenger } from "@escad/protocol"
+import { ServerBundlerMessenger, ServerClientMessenger, ServerRendererShape } from "@escad/protocol"
 import { ServerRendererMessenger } from "@escad/protocol"
 import { ServerEmitter } from "./serverEmitter"
 
@@ -11,7 +12,7 @@ export const createServerClientMessenger = ({
   serverEmitter,
 }: {
   connection: Connection<unknown>,
-  createRendererMessenger: () => Promise<ServerRendererMessenger>,
+  createRendererMessenger: (lookupRaw: ServerRendererShape["lookupRaw"]) => Promise<ServerRendererMessenger>,
   bundlerMessenger?: ServerBundlerMessenger,
   serverEmitter: ServerEmitter,
 }) => {
@@ -55,11 +56,16 @@ export const createServerClientMessenger = ({
   function reloadRenderer(){
     console.log("Reloading renderer")
     currentRendererProm?.then(r => r.destroy(true))
-    currentRendererProm = createRendererMessenger().then(renderer => {
+    currentRendererProm = createRendererMessenger(lookupRaw).then(renderer => {
       messenger.emit("log", renderer.on("log"))
       renderer.on("renderStart", () => console.log("Render started"))
       renderer.on("renderFinish", () => console.log("Render finished"))
       return renderer
     })
   }
+
+  function lookupRaw(hash: Hash<unknown>){
+    return messenger.lookupRaw(hash)
+  }
+
 }

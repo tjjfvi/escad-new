@@ -2,7 +2,7 @@ import "../stylus/LogsPane.styl"
 import { IdView } from "./IdView"
 import { observer, useFromProm } from "rhobo"
 import React, { useContext } from "react"
-import { IdMap, Log } from "@escad/core"
+import { Id, Log } from "@escad/core"
 import { ClientState } from "./ClientState"
 import { Pane } from "./Pane"
 import { Loading } from "./Loading"
@@ -13,11 +13,11 @@ export interface LogTypeRegistration<T extends Log> {
   component: (props: { log: T }) => JSX.Element | null,
 }
 
-const logTypeRegistrations = new IdMap<LogTypeRegistration<any>>()
+const logTypeRegistrations = new Map<Id, LogTypeRegistration<any>>()
 
 export const registerLogType = async <T extends Log>(registration: LogTypeRegistration<T>) => {
   if(logTypeRegistrations.has(registration.id))
-    throw new Error(`Duplicate LogTypeRegistration for id ${registration.id.full}`)
+    throw new Error(`Duplicate LogTypeRegistration for id ${registration.id}`)
   logTypeRegistrations.set(registration.id, registration)
 }
 

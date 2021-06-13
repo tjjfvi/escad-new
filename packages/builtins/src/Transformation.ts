@@ -3,7 +3,7 @@ import { Mesh } from "./Mesh"
 import { Matrix4 } from "./Matrix4"
 import { Face } from "./Face"
 
-const transformId = Id.create(__filename, "@escad/builtins", "Marker", "Transform", "0")
+const transformId = Id.create(__filename, "@escad/builtins", "Marker", "Transform")
 export type Transform<T extends Product> = MarkedProduct<typeof transformId, T>
 export const Transform = MarkedProduct.for(transformId)
 
@@ -29,5 +29,5 @@ conversionRegistry.register({
       )),
     )),
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "Transformation", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "Transformation"),
 })

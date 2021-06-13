@@ -14,16 +14,13 @@ checkTypeProperty.string = <T extends { type: string }>(type: T["type"]) =>
 
 checkTypeProperty.id = <T extends { type: Id }>(id: T["type"]) =>
   checkTypeProperty((value): value is T["type"] =>
-    Id.isId(value)
-    && Id.equal(value, id),
+    value === id,
   )
 
 checkTypeProperty.idScope =
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  <T extends { type: Id }>(scope: T["type"]["scope"]) =>
+  <T extends { type: Id }>(scope: NonNullable<T["type"][__id]>[1]) =>
     checkTypeProperty((value): value is T["type"] =>
-      Id.isId(value)
-      && value.scope === scope,
+      typeof value === "string" && Id.tryParse(value)?.scope === scope,
     )
 
-import { Id } from "./Id"
+import { Id, __id } from "./Id"

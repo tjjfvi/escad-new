@@ -20,6 +20,7 @@
     "@escad/client-builtins": "^0.0.0"
   },
   "dependencies": {
+    "@escad/serial": "^0.0.0",
     "@escad/core": "^0.0.0",
     "@escad/register-client-plugin": "^0.0.0"
   },

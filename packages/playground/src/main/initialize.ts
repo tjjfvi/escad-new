@@ -190,7 +190,6 @@ export const fds: Record<number, { _path: string }> = fs.getFSModule().fdMap
 self.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args)
 
 import rendererSource from "!!raw-loader!../workers/renderer.js"
-import imasSource from "!!raw-loader!../utils/InMemoryArtifactStore.js"
 import createBlobSource from "!!raw-loader!../utils/createBlob.js"
 import fakeImportAllEscadSource from "!!raw-loader!../utils/fakeImportAllEscad.js"
 import { createResourceFile } from "../utils/resourceFiles"
@@ -204,7 +203,6 @@ if(self.document) {
   createResourceFile(rendererSource)
   createResourceFile(fakeImportAllEscadSource)
   fs.mkdirSync("/utils")
-  fs.writeFileSync("/utils/InMemoryArtifactStore.js", imasSource)
   fs.writeFileSync("/utils/createBlob.js", createBlobSource)
 }
 

@@ -16,7 +16,7 @@ import {
 } from "@escad/core"
 import { Bsp, ClipOptions } from "./Bsp"
 
-const intersectionId = Id.create(__filename, "@escad/builtins", "Marker", "Intersection", "0")
+const intersectionId = Id.create(__filename, "@escad/builtins", "Marker", "Intersection")
 export type Intersection<T extends Product> = MarkedProduct<typeof intersectionId, T>
 export const Intersection = MarkedProduct.for(intersectionId)
 
@@ -40,7 +40,7 @@ conversionRegistry.register({
       return Bsp.build(a, Bsp.allFaces(b)) ?? Bsp.null()
     }),
   weight: 1,
-  id: Id.create(__filename, "@escad/builtins", "Conversion", "Intersection", "0"),
+  id: Id.create(__filename, "@escad/builtins", "Conversion", "Intersection"),
 })
 
 export const intersection: ConvertibleOperation<Bsp, Bsp> =

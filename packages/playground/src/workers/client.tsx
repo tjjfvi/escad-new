@@ -11,9 +11,8 @@ import {
 import React from "react"
 import ReactDOM from "react-dom"
 import { App, ClientState } from "@escad/client"
-import { artifactManager, ArtifactStore } from "@escad/core"
+import { artifactManager, ArtifactStore, InMemoryArtifactStore } from "@escad/core"
 import { createServerClientMessenger } from "@escad/server"
-import { InMemoryArtifactStore } from "../utils/InMemoryArtifactStore"
 import { createBlob } from "../utils/createBlob"
 import { ServerRendererMessenger } from "@escad/protocol"
 import { createServerEmitter } from "@escad/server"
@@ -33,14 +32,14 @@ if(isRun) {
 
   createServerClientMessenger({
     connection: logConnection(serverClient),
-    createRendererMessenger: async () => {
+    createRendererMessenger: async lookupRaw => {
       const worker = new Worker(workerSource)
       const artifactMessenger = createMessenger<Required<ArtifactStore>, {}, {}>({
         impl: artifactStore,
         connection: brandConnection(workerConnection(worker), "artifacts"),
       })
       const messenger: ServerRendererMessenger = createMessenger({
-        impl: {},
+        impl: { lookupRaw },
         connection: logConnection(brandConnection(workerConnection(worker), "renderer")),
         onDestroy: [artifactMessenger.destroy],
       })
@@ -52,6 +51,7 @@ if(isRun) {
   const clientState = new ClientState(
     clientServer,
     artifactManager,
+    // @ts-ignore: todo
     hash => createBlob(artifactStore.raw.get(hash) ?? new Uint8Array(0)),
   )
   clientState.removeStatusSet("Connection")
