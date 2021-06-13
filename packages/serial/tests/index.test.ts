@@ -166,7 +166,7 @@ function testSerializer<T>(serializer: Serializer<T>, value: T){
     str += (num < 16 ? "0" : "") + num.toString(16) + (i % 16 === 0 ? "\n " : " ")
   }
   expect(str.trimEnd()).toMatchSnapshot()
-  const deserialized = serializer.deserializeStream((function*(){
+  const deserialized = serializer.deserialize((function*(){
     for(const buffer of buffers) {
       const chunkSize = Math.floor(Math.random() * 16) + 16
       for(let i = 0; i < buffer.length; i += chunkSize)
